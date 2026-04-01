@@ -1,0 +1,3196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서울 탁주 - 주류 생산 관리</title>
+<style>
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #2c5f8a;
+  --accent: #ffa94d;
+  --bg: #eef0f3;
+  --surface: #ffffff;
+  --surface-alt: #f8f8fb;
+  --surface-input: #f3f3f6;
+  --border: #dcdbe0;
+  --border-light: #e4e3ea;
+  --text: #1e1e2e;
+  --text-secondary: #666666;
+  --muted: #8a8a9a;
+  --muted-light: #aaaaaa;
+  --muted-lighter: #bbbbbb;
+  --danger: #c0392b;
+  --danger-bg: #fdf0ef;
+  --danger-border: #f5c6c2;
+  --success: #27ae60;
+  --success-bg: #e6f4ea;
+  --success-border: #b7dfc0;
+  --info: #2471a3;
+  --info-bg: #eef4fb;
+  --info-border: #aac9e8;
+  --hover-bg: #f0f0f8;
+  --ghost-bg: #eeedf4;
+  --ghost-hover: #e0dfe8;
+  --sidebar-bg: #16304f;
+  --cal-sunday: #e74c3c;
+  --cal-saturday: #3498db;
+  --cal-hover: #f0efe8;
+  --cal-today: #eef4ff;
+  --rpt-th-bg: #edf1f7;
+  --rpt-th-border: #c8cdd8;
+  --rpt-td-border: #d8dce5;
+  --rpt-lbl-bg: #f8f8fc;
+  --carry-row: #f0f4ff;
+  --nav-h: 56px;
+  --sb-w: 210px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Malgun Gothic','맑은 고딕',sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── TOP NAV ─────────────────────────────────────────── */
+.top-nav {
+  background: var(--primary);
+  height: var(--nav-h);
+  display: flex; align-items: center; padding: 0 24px; gap: 2px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,.4);
+}
+.logo {
+  font-size: 17px; font-weight: 700; color: var(--accent);
+  margin-right: 20px; letter-spacing: 1px; white-space: nowrap;
+}
+.top-nav button {
+  background: none; border: none; color: rgba(255,255,255,.75);
+  padding: 7px 16px; cursor: pointer; font-size: 13.5px; border-radius: 5px;
+  transition: all .15s; font-family: inherit; letter-spacing: .2px;
+}
+.top-nav button:hover { background: rgba(255,255,255,.12); color: #fff; }
+.top-nav button.active {
+  background: rgba(255,255,255,.14); color: #fff;
+  border-bottom: 2px solid var(--accent);
+}
+.spacer { flex: 1; }
+.print-btn {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22);
+  color: rgba(255,255,255,.85); padding: 5px 13px; cursor: pointer; font-size: 12px;
+  border-radius: 5px; font-family: inherit; transition: all .15s;
+}
+.print-btn:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+.layout { display: flex; margin-top: var(--nav-h); min-height: calc(100vh - var(--nav-h)); }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+  width: var(--sb-w); background: var(--sidebar-bg); flex-shrink: 0;
+  position: fixed; top: var(--nav-h); bottom: 0; overflow-y: auto; z-index: 90;
+  transition: transform .25s ease;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.sb-section-title {
+  color: rgba(255,255,255,.3); font-size: 10px; font-weight: 700;
+  padding: 16px 16px 6px; text-transform: uppercase; letter-spacing: .8px;
+}
+.sb-item {
+  display: block; width: 100%; text-align: left; border: none;
+  background: none; padding: 9px 16px; color: rgba(255,255,255,.68);
+  cursor: pointer; font-size: 12.5px; font-family: inherit; transition: all .12s;
+}
+.sb-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sb-item.active {
+  background: rgba(255,169,77,.13); color: var(--accent);
+  border-left: 3px solid var(--accent); padding-left: 13px;
+}
+.sb-sub .sb-item { font-size: 12px; padding: 8px 16px 8px 28px; }
+.sb-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; border: none; background: none; padding: 9px 16px;
+  color: rgba(255,255,255,.68); cursor: pointer; font-size: 12.5px; font-family: inherit;
+  transition: all .12s;
+}
+.sb-toggle:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sb-toggle.open { color: var(--accent); }
+.sb-collapse { display: none; }
+.sb-collapse.open { display: block; }
+
+/* ── MAIN CONTENT ────────────────────────────────────── */
+.main {
+  margin-left: var(--sb-w); flex: 1;
+  padding: 28px 32px;
+  max-width: calc(100vw - var(--sb-w));
+}
+.content-wrap {
+  width: 100%;
+}
+
+/* ── PANEL HEADER ────────────────────────────────────── */
+.panel-hdr {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border);
+}
+.panel-title { font-size: 20px; font-weight: 700; color: var(--primary); letter-spacing: -.2px; margin: 0; }
+h2.panel-title { font-size: 20px; }
+h3.card-title { font-size: 13px; font-weight: 700; color: var(--primary); letter-spacing: .1px; margin: 0; }
+.panel-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ── CARD ────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border-radius: 10px;
+  border: 1px solid var(--border); margin-bottom: 22px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.card-hdr {
+  padding: 12px 20px; background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title { font-size: 13px; font-weight: 700; color: var(--primary); letter-spacing: .1px; }
+.card-body { padding: 20px; }
+
+/* ── FORM ────────────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px; margin-bottom: 16px;
+  align-items: stretch;
+}
+.fg {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px 12px; background: var(--surface-alt);
+  align-self: stretch;
+}
+.fg label {
+  font-size: 10.5px; color: var(--primary); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .4px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; margin-bottom: 10px;
+}
+.fg input, .fg select {
+  border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px;
+  font-size: 13px; font-family: inherit; outline: none; color: var(--text);
+  background: var(--surface); transition: border-color .15s, box-shadow .15s;
+  margin-top: auto;
+}
+.fg input:focus, .fg select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(44,95,138,.12);
+}
+.fg input[readonly] { background: var(--surface-input); color: var(--muted); cursor: default; }
+
+/* 묶음 입력 그룹 */
+.fg-group {
+  display: flex; flex-direction: column; gap: 6px;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px 12px; background: var(--surface-alt);
+  align-self: stretch;
+}
+.fg-group > .fg-group-lbl {
+  font-size: 10.5px; color: var(--primary); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .4px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  margin-bottom: 2px; flex-shrink: 0;
+}
+.fg-group-body { display: flex; gap: 8px; flex: 1; }
+.fg-group-body > div { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.fg-group-body > div > span {
+  font-size: 10px; color: var(--muted); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.fg-group-wide { grid-column: span 2; }
+.fg-group-body > div > input {
+  width: 100%; border: 1px solid var(--border); border-radius: 6px;
+  padding: 7px 10px; font-size: 13px; font-family: inherit;
+  background: var(--surface); outline: none; color: var(--text);
+  transition: border-color .15s;
+}
+.fg-group-body > div > input:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(44,95,138,.1);
+}
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 18px; border-radius: 6px; border: none;
+  cursor: pointer; font-size: 13px; font-family: inherit;
+  font-weight: 600; transition: all .12s; letter-spacing: .1px;
+}
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 1px 3px rgba(26,58,92,.3); }
+.btn-primary:hover { background: var(--primary-light); box-shadow: 0 2px 6px rgba(26,58,92,.35); }
+.btn-ghost { background: var(--ghost-bg); color: var(--text); }
+.btn-ghost:hover { background: var(--ghost-hover); }
+.btn-del {
+  background: var(--danger-bg); color: var(--danger); padding: 4px 10px;
+  font-size: 11px; border-radius: 4px; border: 1px solid var(--danger-border);
+  cursor: pointer; font-family: inherit; font-weight: 600; transition: all .12s;
+}
+.btn-del:hover { background: var(--danger); color: #fff; }
+.btn-edit {
+  background: var(--info-bg); color: var(--info); padding: 4px 10px;
+  font-size: 11px; border-radius: 4px; border: 1px solid var(--info-border);
+  cursor: pointer; font-family: inherit; font-weight: 600;
+  margin-right: 4px; transition: all .12s;
+}
+.btn-edit:hover { background: var(--info); color: #fff; }
+.btn-row { display: flex; gap: 10px; padding-top: 4px; }
+
+/* ── TABLE ───────────────────────────────────────────── */
+.tbl-wrap {
+  overflow-x: auto;
+  position: relative;
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent),
+    linear-gradient(to left, var(--surface) 30%, transparent),
+    linear-gradient(to right, rgba(0,0,0,.15), transparent),
+    linear-gradient(to left, rgba(0,0,0,.15), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 20px 100%, 20px 100%, 10px 100%, 10px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+table.led { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.led th {
+  background: var(--primary); color: #fff; padding: 8px 10px;
+  text-align: center; font-weight: 600; border: 1px solid rgba(255,255,255,.1);
+  white-space: nowrap; font-size: 11.5px; letter-spacing: .1px;
+}
+table.led td {
+  padding: 7px 10px; border: 1px solid var(--border-light);
+  text-align: center; white-space: nowrap; font-size: 12px;
+}
+table.led tr:nth-child(even) td { background: var(--surface-alt); }
+table.led tr:hover td { background: var(--hover-bg); }
+table.led td.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.led td.bal { font-weight: 700; color: var(--primary); text-align: right; }
+table.led td.prev { text-align: right; font-weight: 600; color: var(--text-secondary); font-style: italic; }
+
+/* ── COMBO ───────────────────────────────────────────── */
+.combo-wrap { position: relative; display: flex; margin-top: auto; }
+.combo-wrap input { flex: 1; border-radius: 6px 0 0 6px; border-right: none; min-width: 0; padding: 7px 10px; }
+.combo-wrap input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(44,95,138,.12); z-index: 1; }
+.combo-arrow {
+  border: 1px solid var(--border); border-left: none; border-radius: 0 6px 6px 0;
+  background: var(--ghost-bg); padding: 0 10px; cursor: pointer; color: var(--muted);
+  font-size: 12px; transition: background .12s; line-height: 1; flex-shrink: 0;
+  align-self: stretch;
+}
+.combo-arrow:hover { background: var(--ghost-hover); color: var(--text); }
+.combo-drop {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+  max-height: 200px; overflow-y: auto; z-index: 300;
+  display: none; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+}
+.combo-drop.open { display: block; }
+.combo-opt {
+  padding: 9px 12px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background .1s;
+}
+.combo-opt:hover { background: var(--hover-bg); }
+.combo-opt-role { font-size: 11px; color: var(--muted); }
+.combo-empty { padding: 9px 12px; color: var(--muted); font-size: 12px; font-style: italic; }
+
+/* ── BADGE ───────────────────────────────────────────── */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; background: var(--success-bg); color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+/* ── DIVIDER ─────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ── STATS ───────────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px; text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.stat-lbl { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+.stat-val { font-size: 24px; font-weight: 700; color: var(--primary); }
+.stat-unit { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ── INVENTORY 재고현황 ──────────────────────────────── */
+.inv-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px; margin-bottom: 6px;
+}
+.inv-sum-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 14px; text-align: center;
+  cursor: pointer; transition: all .15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.inv-sum-card:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(255,169,77,.18); }
+.inv-sum-card-sel {
+  border-color: var(--accent); background: rgba(255,169,77,.08);
+  box-shadow: 0 2px 12px rgba(255,169,77,.22);
+}
+.inv-sum-lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px; }
+.inv-sum-card-sel .inv-sum-lbl { color: var(--accent); }
+.inv-sum-val { font-size: 22px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+.inv-sum-card-sel .inv-sum-val { color: var(--primary); }
+.inv-sum-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.inv-sum-sub { font-size: 10px; color: var(--muted); margin-top: 6px; line-height: 1.4; border-top: 1px solid var(--border); padding-top: 6px; }
+
+/* ── HAMBURGER ───────────────────────────────────────── */
+.ham { display: none; background: none; border: none; color: rgba(255,255,255,.9); font-size: 22px; cursor: pointer; padding: 4px 6px; margin-right: 6px; line-height: 1; }
+
+/* ── SIDEBAR OVERLAY ─────────────────────────────────── */
+.sb-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 85; }
+.sb-overlay.on { display: block; }
+
+/* ── EDIT MODAL ──────────────────────────────────────── */
+.modal-bg {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 500; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-bg.open { display: flex; }
+.modal-box {
+  background: var(--surface); border-radius: 12px; width: 100%; max-width: 780px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 16px 50px rgba(0,0,0,.22);
+}
+.modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+  border-radius: 12px 12px 0 0;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--primary); }
+.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted-light); line-height: 1; padding: 0 4px; transition: color .12s; }
+.modal-close:hover { color: var(--danger); }
+.modal-body { padding: 22px; }
+.modal-foot {
+  padding: 14px 22px; border-top: 1px solid var(--border);
+  display: flex; gap: 10px; background: var(--surface-alt);
+  border-radius: 0 0 12px 12px;
+}
+
+/* ── TABLET (≤900px) ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); position: fixed; }
+  .sidebar.mob-open { transform: translateX(0); }
+  .ham { display: block; }
+  .main { margin-left: 0; max-width: 100vw; }
+  .sb-item { min-height: 44px; padding: 12px 16px; display: flex; align-items: center; }
+  .sb-toggle { min-height: 44px; padding: 12px 16px; }
+  .sb-sub .sb-item { padding: 12px 16px 12px 28px; }
+}
+
+/* ── MOBILE (≤600px) ─────────────────────────────────── */
+@media (max-width: 600px) {
+  .top-nav { padding: 0 12px; gap: 2px; height: 50px; }
+  .logo { font-size: 15px; margin-right: 8px; }
+  .top-nav button { padding: 5px 10px; font-size: 12px; }
+  .layout { margin-top: 50px; }
+  .sidebar { top: 50px; }
+  .main { margin-left: 0; padding: 14px 16px; }
+  .panel-title { font-size: 17px; }
+  .panel-hdr { flex-direction: column; gap: 6px; }
+  .form-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .card-body { padding: 14px; }
+  .btn { padding: 7px 13px; font-size: 12px; }
+  .btn-row { flex-wrap: wrap; }
+  .modal-box { max-width: 100%; border-radius: 10px; }
+}
+
+/* ── SMALL PHONE (≤380px) ────────────────────────────── */
+@media (max-width: 380px) {
+  .top-nav button { padding: 4px 7px; font-size: 11px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── DARK MODE ──────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #5b9bd5;
+    --primary-light: #7bb8e8;
+    --accent: #ffa94d;
+    --bg: #1a1a2e;
+    --surface: #242438;
+    --surface-alt: #2a2a40;
+    --surface-input: #1e1e30;
+    --border: #3a3a50;
+    --border-light: #33334a;
+    --text: #e0e0ec;
+    --text-secondary: #a0a0b0;
+    --muted: #8888a0;
+    --muted-light: #6a6a80;
+    --muted-lighter: #555568;
+    --danger: #e74c3c;
+    --danger-bg: #3a1a1a;
+    --danger-border: #5a2a2a;
+    --success: #2ecc71;
+    --success-bg: #1a3a2a;
+    --success-border: #2a5a3a;
+    --info: #5dade2;
+    --info-bg: #1a2a3a;
+    --info-border: #2a4a5a;
+    --hover-bg: #2e2e48;
+    --ghost-bg: #2a2a40;
+    --ghost-hover: #343450;
+    --sidebar-bg: #12122a;
+    --cal-sunday: #ff6b6b;
+    --cal-saturday: #5dade2;
+    --cal-hover: #2e2e48;
+    --cal-today: #1a2a4a;
+    --rpt-th-bg: #2a2a44;
+    --rpt-th-border: #3a3a55;
+    --rpt-td-border: #33334a;
+    --rpt-lbl-bg: #2a2a40;
+    --carry-row: #1a2a3a;
+  }
+  body { color-scheme: dark; }
+  .top-nav { box-shadow: 0 2px 10px rgba(0,0,0,.6); }
+  .card { box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .fg input, .fg select, .fg-group-body > div > input { background: var(--surface-input); color: var(--text); border-color: var(--border); }
+  .fg input:focus, .fg select:focus, .fg-group-body > div > input:focus { border-color: var(--primary); }
+  .combo-drop { background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .modal-box { background: var(--surface); box-shadow: 0 16px 50px rgba(0,0,0,.5); }
+  .modal-hdr { background: var(--surface); }
+  .modal-foot { background: var(--surface-alt); }
+  .rpt-paper { background: var(--surface); }
+  .cal-widget, .qe-card { background: var(--surface); }
+  table.led th { background: var(--primary); }
+  .rpt-section-hdr { background: var(--primary); }
+  .stat-card, .inv-sum-card { background: var(--surface); }
+}
+
+/* ── FOCUS VISIBLE ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+}
+.top-nav button:focus-visible,
+.sb-item:focus-visible,
+.sb-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.btn:focus-visible, .btn-edit:focus-visible, .btn-del:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+}
+
+/* ── SKIP NAV ───────────────────────────────────────── */
+.skip-nav {
+  position: absolute; top: -100%; left: 50%; transform: translateX(-50%);
+  background: var(--primary); color: #fff; padding: 8px 20px;
+  border-radius: 0 0 8px 8px; z-index: 200; font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: top .15s;
+}
+.skip-nav:focus { top: 0; }
+
+/* ── REDUCED MOTION ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── EMPTY STATE ────────────────────────────────────── */
+.empty-row { text-align: center; color: var(--muted); padding: 18px; }
+.empty-hint { font-size: 11px; color: var(--muted-light); margin-top: 4px; }
+
+/* ── POLISH: Touch targets on mobile ───────────────── */
+@media (max-width: 900px) {
+  .btn-edit, .btn-del { min-height: 36px; min-width: 36px; padding: 6px 12px; }
+}
+@media (max-width: 600px) {
+  .btn-edit, .btn-del { min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 12px; }
+  .cal-cell { min-height: 36px; }
+  .combo-arrow { min-width: 44px; }
+}
+
+@media print {
+  .top-nav, .sidebar, .sb-overlay, .no-print, .modal-bg { display: none !important; }
+  .main { margin-left: 0; padding: 8px; max-width: 100%; }
+  .card { box-shadow: none; break-inside: avoid; }
+  .rpt-section { break-inside: avoid; }
+  table.led { font-size: 10px; }
+  table.led th { background: var(--primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  table.led td, table.led th { padding: 4px 6px; }
+  .rpt-paper { padding: 10px; break-inside: avoid; }
+  .rpt-tbl { font-size: 10px; }
+  .stats-row, .inv-card-grid { break-inside: avoid; }
+}
+
+/* ── REPORT STYLES ───────────────────────────────── */
+.rpt-date-bar { display:flex; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+.rpt-paper {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:28px 30px; margin-bottom:18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.rpt-header { text-align:center; margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid var(--primary); }
+.rpt-co { font-size:13px; color:var(--muted); margin-bottom:4px; }
+.rpt-title { font-size:22px; font-weight:700; color:var(--primary); letter-spacing:2px; margin-bottom:4px; }
+.rpt-date-stamp { font-size:13px; color:var(--text); font-weight:600; }
+.rpt-section { margin-bottom:20px; }
+.rpt-section-hdr {
+  background:var(--primary); color:#fff;
+  padding:6px 14px; font-size:12.5px; font-weight:600;
+  border-radius:5px 5px 0 0; letter-spacing:.2px;
+}
+.rpt-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.rpt-tbl th {
+  background:var(--rpt-th-bg); color:var(--primary); padding:6px 10px;
+  border:1px solid var(--rpt-th-border); text-align:center; white-space:nowrap; font-size:11px;
+}
+.rpt-tbl td { padding:5px 10px; border:1px solid var(--rpt-td-border); white-space:nowrap; }
+.rpt-tbl td.lbl { text-align:left; font-weight:600; background:var(--rpt-lbl-bg); }
+.rpt-tbl td.r   { text-align:right; font-variant-numeric:tabular-nums; }
+.rpt-tbl td.bal { text-align:right; font-weight:700; color:var(--primary); font-variant-numeric:tabular-nums; }
+.rpt-tbl td.ctr { text-align:center; }
+.rpt-tbl tr.total-row td { background:var(--rpt-th-bg); font-weight:700; }
+.rpt-tbl tr.zero td { color:var(--muted-lighter); }
+.ctnr-input-bar {
+  background:var(--surface-alt); border:1px solid var(--border); border-top:none;
+  padding:10px 14px; margin-bottom:0; border-radius:0 0 5px 5px;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; align-items:flex-end;
+}
+.rpt-ym-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+
+/* ── CALENDAR ─────────────────────────────────────── */
+.daily-wrap { display:flex; gap:16px; align-items:flex-start; }
+.cal-panel { width:236px; flex-shrink:0; position:sticky; top:76px; max-height:calc(100vh - 90px); overflow-y:auto; }
+.daily-content { flex:1; min-width:0; }
+.cal-widget { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:12px; }
+.cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cal-nav-btn { background:none; border:1px solid var(--border); border-radius:4px; padding:2px 11px; cursor:pointer; font-size:18px; line-height:1.4; font-family:inherit; color:var(--primary); transition:all .12s; }
+.cal-nav-btn:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
+.cal-month-lbl { font-weight:700; color:var(--primary); font-size:14px; }
+.cal-dow { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:10px; font-weight:700; color:var(--muted); margin-bottom:3px; padding:0 1px; }
+.cal-dow div:first-child { color:var(--cal-sunday); }
+.cal-dow div:last-child { color:var(--cal-saturday); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-cell { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:5px; cursor:pointer; position:relative; transition:background .1s; }
+.cal-cell:not(.empty):hover { background:var(--cal-hover); }
+.cal-cell.empty { cursor:default; }
+.cal-day-num { font-size:12px; line-height:1; }
+.cal-cell:nth-child(7n+1) .cal-day-num { color:var(--cal-sunday); }
+.cal-cell:nth-child(7n) .cal-day-num { color:var(--cal-saturday); }
+.cal-cell.today { background:var(--cal-today); }
+.cal-cell.today .cal-day-num { font-weight:700; color:var(--primary); }
+.cal-cell.selected { background:var(--primary) !important; border-radius:5px; }
+.cal-cell.selected .cal-day-num { color:#fff !important; font-weight:700; }
+.cal-cell.today.selected { background:var(--accent) !important; }
+.cal-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); position:absolute; bottom:2px; left:50%; transform:translateX(-50%); }
+.cal-cell.selected .cal-dot { background:rgba(255,255,255,.7); }
+.cal-legend { font-size:10px; color:var(--muted); text-align:center; margin-top:8px; padding-top:6px; border-top:1px solid var(--border); }
+.cal-today-btn { display:block; width:100%; text-align:center; background:none; border:1px solid var(--border); border-radius:4px; padding:4px; font-size:11px; cursor:pointer; font-family:inherit; color:var(--primary); margin-top:6px; }
+.cal-today-btn:hover { background:var(--primary); color:#fff; }
+/* quick entry panel */
+.qe-card { background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; margin-bottom:12px; }
+.qe-card-hdr { background:var(--surface-alt); border-bottom:1px solid var(--border); padding:7px 12px; font-size:12px; font-weight:600; color:var(--primary); display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+.qe-card-body { padding:10px 12px; display:none; }
+.qe-card-body.open { display:block; }
+.qe-card-body .fg { margin-bottom:6px; border:none; background:none; padding:0; border-radius:0; }
+.qe-card-body .fg label { font-size:10px; border-bottom:none; padding-bottom:2px; color:var(--muted); }
+.qe-card-body input, .qe-card-body select { font-size:12px; padding:4px 6px; flex:none; }
+
+@media (max-width:820px) {
+  .daily-wrap { flex-direction:column; }
+  .cal-panel { width:100%; position:static; max-height:none; }
+  .cal-grid { gap:3px; }
+  .cal-cell { font-size:13px; }
+}
+</style>
+</head>
+<body>
+
+<div id="sr-status" aria-live="polite" role="status" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"></div>
+<a href="#main" class="skip-nav">본문으로 건너뛰기</a>
+
+<nav class="top-nav" role="navigation" aria-label="주 메뉴">
+  <button class="ham" id="ham-btn" onclick="toggleMobileSidebar()" aria-label="사이드바 메뉴 열기" aria-expanded="false" aria-controls="sidebar">☰</button>
+  <span class="logo" id="logo-text">서울탁주</span>
+  <button id="btn-mfg" class="active" onclick="switchMain('mfg')" aria-label="주류제조부">주류제조부</button>
+  <button id="btn-status" onclick="switchMain('status')" aria-label="주류현황">주류현황</button>
+  <button id="btn-inv" onclick="switchMain('inv')" aria-label="재고관리">재고관리</button>
+  <button id="btn-settings" onclick="switchMain('settings')" aria-label="설정">설정</button>
+  <div class="spacer"></div>
+  <button class="print-btn no-print" onclick="window.print()" aria-label="인쇄">🖨 인쇄</button>
+</nav>
+
+<div class="sb-overlay" id="sb-overlay" onclick="closeMobileSidebar()"></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="하위 메뉴">
+    <!-- 주류제조부 메뉴 -->
+    <div id="sb-mfg">
+      <div class="sb-section-title">원장 관리</div>
+      <button class="sb-item" onclick="showSub('koji')">입국 수불</button>
+      <button class="sb-item" onclick="showSub('mash')">술덧담금 및 걸름</button>
+      <button class="sb-item" onclick="showSub('lees')">술지거미 수불</button>
+      <button class="sb-item" onclick="showSub('firstmash')">1차 술덧 담금</button>
+      <button class="sb-item" onclick="showSub('baseliq')">밑술 제조</button>
+      <button class="sb-item" onclick="showSub('liquor')">주류 수불</button>
+      <button class="sb-toggle open" id="raw-toggle" onclick="toggleRaw()">
+        <span>원료 수불</span><span id="raw-arrow">▴</span>
+      </button>
+      <div class="sb-collapse open sb-sub" id="raw-collapse">
+        <button class="sb-item" onclick="showSub('raw_평화미')">평화미</button>
+        <button class="sb-item" onclick="showSub('raw_백미')">백미</button>
+        <button class="sb-item" onclick="showSub('raw_효모')">효모</button>
+        <button class="sb-item" onclick="showSub('raw_곡자')">곡자 (발효제)</button>
+        <button class="sb-item" onclick="showSub('raw_아스파탐')">아스파탐 (첨가물)</button>
+        <button class="sb-item" onclick="showSub('raw_구연산')">구연산 (첨가물)</button>
+      </div>
+    </div>
+    <!-- 주류현황 메뉴 -->
+    <div id="sb-status" style="display:none">
+      <div class="sb-section-title">현황 보고</div>
+      <button class="sb-item active" id="sb-daily" onclick="showStatus('daily')">현황일보</button>
+      <button class="sb-item" id="sb-monthly" onclick="showStatus('monthly')">현황월보</button>
+    </div>
+    <!-- 재고관리 메뉴 -->
+    <div id="sb-inv" style="display:none">
+      <div class="sb-section-title">재고 관리</div>
+      <button class="sb-item active" id="sb-invstock" onclick="showInv('stock')">재고현황</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="content-wrap" id="main"></div>
+  </main>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal-bg" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span class="modal-title" id="edit-modal-title">수정</span>
+      <button class="modal-close" onclick="closeEditModal()" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="edit-modal-body"></div>
+    <div class="modal-foot no-print">
+      <button class="btn btn-primary" id="edit-save-btn">저장</button>
+      <button class="btn btn-ghost" onclick="closeEditModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ───────────────────────────────────────────────
+const KEY = 'stj_v1';
+function defData() {
+  return {
+    settings: { company: '서울 탁주', bizno: '', addr: '' },
+    users: [],
+    prevDate: '',
+    prev: { 평화미:0, 백미:0, 효모:0, 곡자:0, 아스파탐:0, 구연산:0, 입국:0, 주류:0 },
+    prevCtnr: { 용기:0, 마개:0 },
+    koji: [], mash: [], lees: [], firstmash: [], baseliq: [], liquor: [],
+    raw: { 평화미:[], 백미:[], 효모:[], 곡자:[], 아스파탐:[], 구연산:[] },
+    ctnr: []
+  };
+}
+let DB = (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : defData(); } catch(e) { return defData(); } })();
+// 기존 데이터 마이그레이션 (prevCtnr/ctnr 없을 경우)
+if (!DB.prevCtnr) DB.prevCtnr = { 용기:0, 마개:0 };
+if (!DB.ctnr) DB.ctnr = [];
+function save() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e) { alert('저장 실패: 저장 공간이 부족합니다.\n\n설정 > 데이터 관리 > "데이터 내보내기"로 백업 후,\n불필요한 데이터를 삭제해 주세요.'); } }
+function nid(arr) { return arr.length ? Math.max(...arr.map(r=>r.id))+1 : 1; }
+
+// ── UTIL ───────────────────────────────────────────────
+function announce(msg) { const el=document.getElementById('sr-status'); if(el){ el.textContent=''; setTimeout(()=>{ el.textContent=msg; },50); } }
+function fmtD(d) { if(!d) return ''; const p=d.split('-'); return p.length>=3 ? p[1]+'.'+p[2] : d; }
+function fmtN(v) { if(v===''||v===null||v===undefined) return ''; const n=parseFloat(v); return isNaN(n)?v:n.toLocaleString('ko-KR'); }
+function td() { return new Date().toISOString().slice(0,10); }
+function g(id) { const e=document.getElementById(id); return e ? e.value.replace(/,/g,'') : ''; }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── NUMBER INPUT FORMATTING ─────────────────────────────
+document.addEventListener('focus', e => {
+  if (e.target.classList && e.target.classList.contains('ni')) {
+    e.target.value = e.target.value.replace(/,/g, '');
+  }
+}, true);
+document.addEventListener('blur', e => {
+  if (e.target.classList && e.target.classList.contains('ni')) {
+    applyNiFmt(e.target);
+  }
+}, true);
+function applyNiFmt(el) {
+  const raw = (el.value||'').replace(/,/g,'');
+  const n = parseFloat(raw);
+  if (!isNaN(n) && raw.trim() !== '') {
+    el.value = n.toLocaleString('ko-KR', { maximumFractionDigits: 10 });
+  }
+}
+function formatAllNi() {
+  document.querySelectorAll('input.ni').forEach(applyNiFmt);
+}
+function applyGroupAriaLabels() {
+  document.querySelectorAll('.fg-group-body > div').forEach(div => {
+    const span = div.querySelector('span');
+    const input = div.querySelector('input, select');
+    if (span && input && !input.getAttribute('aria-label')) {
+      const groupLbl = div.closest('.fg-group, .fg-group-wide');
+      const groupName = groupLbl ? (groupLbl.querySelector('.fg-group-lbl') || {}).textContent || '' : '';
+      input.setAttribute('aria-label', groupName ? groupName.trim() + ' - ' + span.textContent.trim() : span.textContent.trim());
+    }
+  });
+}
+
+// ── NAV ────────────────────────────────────────────────
+let curSub = 'raw_효모';
+
+function switchMain(mode) {
+  closeMobileSidebar();
+  ['mfg','status','inv','settings'].forEach(m => document.getElementById('btn-'+m).classList.remove('active'));
+  document.getElementById('btn-'+mode).classList.add('active');
+  const sb = document.getElementById('sidebar');
+  const sbMfg = document.getElementById('sb-mfg');
+  const sbSt  = document.getElementById('sb-status');
+  const sbInv = document.getElementById('sb-inv');
+  if (mode==='settings') { sb.style.display='none'; renderSettings(); }
+  else {
+    sb.style.display='block';
+    sbMfg.style.display = mode==='mfg'    ? 'block' : 'none';
+    sbSt.style.display  = mode==='status' ? 'block' : 'none';
+    sbInv.style.display = mode==='inv'    ? 'block' : 'none';
+    if (mode==='mfg') render();
+    else if (mode==='status') showStatus('daily');
+    else showInv('stock');
+  }
+}
+
+let _curInv = 'stock';
+function showInv(type) {
+  _curInv = type;
+  document.querySelectorAll('#sb-inv .sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sb-invstock').classList.toggle('active', type==='stock');
+  if (type==='stock') renderInventory();
+}
+
+let _curStatus = 'daily';
+function showStatus(type) {
+  _curStatus = type;
+  document.getElementById('sb-daily').classList.toggle('active', type==='daily');
+  document.getElementById('sb-monthly').classList.toggle('active', type==='monthly');
+  if (type==='daily') renderDailyReport(null);
+  else renderMonthlyReport(null);
+}
+
+function showSub(name) {
+  curSub = name;
+  closeMobileSidebar();
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => {
+    const lbl = {
+      koji:'입국 수불', mash:'술덧담금 및 걸름', lees:'술지거미 수불',
+      firstmash:'1차 술덧 담금', baseliq:'밑술 제조', liquor:'주류 수불',
+      raw_평화미:'평화미', raw_백미:'백미', raw_효모:'효모',
+      raw_곡자:'곡자 (발효제)', raw_아스파탐:'아스파탐 (첨가물)', raw_구연산:'구연산 (첨가물)'
+    }[name];
+    if (b.textContent.trim()===lbl) b.classList.add('active');
+  });
+  render();
+}
+
+function toggleRaw() {
+  const c = document.getElementById('raw-collapse');
+  const t = document.getElementById('raw-toggle');
+  const a = document.getElementById('raw-arrow');
+  c.classList.toggle('open');
+  t.classList.toggle('open');
+  a.textContent = c.classList.contains('open') ? '▴' : '▾';
+}
+
+// ── RENDER DISPATCH ────────────────────────────────────
+function render() {
+  const mc = document.getElementById('main');
+  if (curSub.startsWith('raw_')) {
+    const m = curSub.replace('raw_','');
+    mc.innerHTML = ['평화미','백미'].includes(m) ? pageRice(m) : pageSimple(m);
+  } else {
+    const map = { koji:pageKoji, mash:pageMash, lees:pageLees, firstmash:pageFirstMash, baseliq:pageBaseLiq, liquor:pageLiquor };
+    mc.innerHTML = map[curSub] ? map[curSub]() : '';
+  }
+  setTimeout(()=>{ formatAllNi(); applyGroupAriaLabels(); }, 10);
+}
+
+// ── 담당자 콤보 필드 ────────────────────────────────────
+function comboOpts(id) {
+  const users = DB.users||[];
+  return users.length
+    ? users.map(u=>`<div class="combo-opt" onmousedown="selectCombo('${id}','${escHtml(u.name)}')">${escHtml(u.name)}${u.role?`<span class="combo-opt-role">${escHtml(u.role)}</span>`:''}</div>`).join('')
+    : `<div class="combo-empty">등록된 담당자가 없습니다</div>`;
+}
+function pField(id, label='담당자') {
+  return `<div class="fg">
+    <label>${label}</label>
+    <div class="combo-wrap">
+      <input type="text" id="${id}" placeholder="직접입력 또는 선택" autocomplete="off" onblur="closeCombo('${id}')">
+      <button type="button" class="combo-arrow" onmousedown="toggleCombo(event,'${id}')">▾</button>
+      <div class="combo-drop" id="${id}-drop">${comboOpts(id)}</div>
+    </div>
+  </div>`;
+}
+function pFieldVal(id, val='', label='담당자') {
+  return `<div class="fg">
+    <label>${label}</label>
+    <div class="combo-wrap">
+      <input type="text" id="${id}" value="${escHtml(val)}" placeholder="직접입력 또는 선택" autocomplete="off" onblur="closeCombo('${id}')">
+      <button type="button" class="combo-arrow" onmousedown="toggleCombo(event,'${id}')">▾</button>
+      <div class="combo-drop" id="${id}-drop">${comboOpts(id)}</div>
+    </div>
+  </div>`;
+}
+function toggleCombo(e, id) {
+  e.preventDefault();
+  const drop = document.getElementById(id+'-drop');
+  if (!drop) return;
+  const wasOpen = drop.classList.contains('open');
+  document.querySelectorAll('.combo-drop.open').forEach(d=>d.classList.remove('open'));
+  if (!wasOpen) drop.classList.add('open');
+}
+function selectCombo(id, val) {
+  const inp = document.getElementById(id);
+  if (inp) { inp.value = val; inp.focus(); }
+  const drop = document.getElementById(id+'-drop');
+  if (drop) drop.classList.remove('open');
+}
+function closeCombo(id) {
+  setTimeout(()=>{ const d=document.getElementById(id+'-drop'); if(d) d.classList.remove('open'); }, 150);
+}
+
+// ── FORM HELPERS ───────────────────────────────────────
+function clearForm(ids) {
+  ids.forEach(id => { const e=document.getElementById(id); if(e) e.value = id==='f-date'?td():''; });
+}
+
+// ── SIMPLE STOCK (효모/곡자/아스파탐/구연산) ────────────
+const simpleTitle = { 효모:'효모 수불', 곡자:'발효제 수불 (곡자)', 아스파탐:'첨가물 수불 (아스파탐)', 구연산:'첨가물 수불 (구연산)' };
+const simpleUnit  = { 효모:'g', 곡자:'kg', 아스파탐:'g', 구연산:'g' };
+
+function pageSimple(m) {
+  const u = simpleUnit[m]||'g';
+  const rows = DB.raw[m]||[];
+  let bal = parseFloat(DB.prev[m])||0;
+  const comp = rows.map(r => {
+    const inc = parseFloat(r.inc)||0, ms = parseFloat(r.ms)||0, sd = parseFloat(r.sd)||0;
+    bal = bal + inc - ms - sd;
+    if (r.mbal !== undefined && r.mbal !== '') bal = parseFloat(r.mbal)||bal;
+    return {...r, _bal: bal};
+  });
+  const curBal = comp.length ? comp[comp.length-1]._bal : (parseFloat(DB.prev[m])||0);
+  return `
+<div class="panel-hdr">
+  <div>
+    <h2 class="panel-title">${simpleTitle[m]}</h2>
+    <div class="panel-sub">현재고: <strong>${fmtN(curBal.toFixed(3))} ${u}</strong> &nbsp;|&nbsp; 전병이월: ${fmtN(DB.prev[m])} ${u}</div>
+  </div>
+</div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>월일</label><input type="date" id="f-date" value="${td()}"></div>
+      ${pField('f-person')}
+      <div class="fg"><label>종별</label><input type="text" id="f-type" placeholder="종류"></div>
+      <div class="fg"><label>수입수량 (${u})</label><input type="text" inputmode="decimal" class="ni" id="f-inc" placeholder="0"></div>
+      <div class="fg"><label>구입처</label><input type="text" id="f-src" placeholder="거래처"></div>
+      <div class="fg"><label>사용-밀술 (${u})</label><input type="text" inputmode="decimal" class="ni" id="f-ms" placeholder="0"></div>
+      <div class="fg"><label>사용-술덧 (${u})</label><input type="text" inputmode="decimal" class="ni" id="f-sd" placeholder="0"></div>
+      <div class="fg"><label>결감수량</label><input type="text" inputmode="decimal" class="ni" id="f-red" placeholder="0"></div>
+      <div class="fg"><label>현재수량 직접입력 <span style="font-weight:400;color:var(--muted-light)">(선택)</span></label><input type="text" inputmode="decimal" class="ni" id="f-mbal" placeholder="자동계산 덮어씀"></div>
+      <div class="fg"><label>적요</label><input type="text" id="f-memo" placeholder="비고"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addSimple('${m}')">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-person','f-type','f-inc','f-src','f-ms','f-sd','f-red','f-mbal','f-memo'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr">
+    <h3 class="card-title">${simpleTitle[m]} 원장</h3>
+    <span class="badge">현재고 ${fmtN(curBal.toFixed(3))} ${u}</span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th rowspan="2">월일</th><th rowspan="2">담당자</th><th rowspan="2">종별</th>
+          <th rowspan="2">수입수량<br>(${u})</th><th rowspan="2">구입처</th>
+          <th colspan="2">사 용 수 량</th>
+          <th rowspan="2">계 (${u})</th>
+          <th rowspan="2">현재수량<br>(${u})</th>
+          <th rowspan="2">결감수량</th><th rowspan="2">적요</th>
+          <th rowspan="2" class="no-print">관리</th>
+        </tr>
+        <tr><th>밀술 (${u})</th><th>술덧 (${u})</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="4" class="prev">전 병 이 월</td>
+          <td></td><td></td><td></td><td></td>
+          <td class="bal">${fmtN(DB.prev[m])}</td>
+          <td></td><td></td><td class="no-print"></td>
+        </tr>
+        ${comp.map(r=>{
+          const ms=parseFloat(r.ms)||0, sd=parseFloat(r.sd)||0, tot=ms+sd;
+          return `<tr>
+            <td>${fmtD(r.date)}</td><td>${escHtml(r.person||'')}</td><td>${escHtml(r.type||'')}</td>
+            <td class="r">${fmtN(r.inc)}</td><td>${escHtml(r.src||'')}</td>
+            <td class="r">${ms?fmtN(ms):''}</td><td class="r">${sd?fmtN(sd):''}</td>
+            <td class="r">${tot?fmtN(tot):''}</td>
+            <td class="bal" title="${r.mbal?'직접입력값':'자동계산'}">${fmtN(r._bal.toFixed(3))}${r.mbal?'<span style="color:var(--accent);font-size:10px;margin-left:3px">●</span>':''}</td>
+            <td class="r">${fmtN(r.red)}</td><td>${escHtml(r.memo||'')}</td>
+            <td class="no-print">
+              <button class="btn-edit" onclick="openEdit('simple','${m}',${r.id})">수정</button>
+              <button class="btn-del" onclick="delSimple('${m}',${r.id})">삭제</button>
+            </td>
+          </tr>`;
+        }).join('')}
+        ${!comp.length?`<tr><td colspan="12" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── RICE RAW MATERIAL (평화미/백미) ─────────────────────
+function pageRice(m) {
+  const rows = DB.raw[m]||[];
+  let bal = parseFloat(DB.prev[m])||0;
+  const comp = rows.map(r => {
+    const inc=parseFloat(r.inc)||0, u2=parseFloat(r.u2)||0, u3=parseFloat(r.u3)||0, u4=parseFloat(r.u4)||0;
+    bal = bal + inc - u2 - u3 - u4;
+    return {...r, _bal: bal};
+  });
+  const curBal = comp.length ? comp[comp.length-1]._bal : (parseFloat(DB.prev[m])||0);
+  return `
+<div class="panel-hdr">
+  <div>
+    <h2 class="panel-title">원료 수불 (${m})</h2>
+    <div class="panel-sub">현재고: <strong>${fmtN(curBal.toFixed(3))} kg</strong> &nbsp;|&nbsp; 전병이월: ${fmtN(DB.prev[m])} kg</div>
+  </div>
+</div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>월일</label><input type="date" id="f-date" value="${td()}"></div>
+      ${pField('f-person')}
+      <div class="fg"><label>수입수량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="f-inc" placeholder="0"></div>
+      <div class="fg"><label>가격 (원)</label><input type="text" inputmode="decimal" class="ni" id="f-price" placeholder="0"></div>
+      <div class="fg"><label>거래선</label><input type="text" id="f-src" placeholder="거래처"></div>
+    </div>
+    <hr class="divider">
+    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:10px;letter-spacing:.4px;text-transform:uppercase">사 용 수 량</div>
+    <div class="form-grid">
+      <div class="fg-group">
+        <span class="fg-group-lbl">2차 담금</span>
+        <div class="fg-group-body">
+          <div><span>순호①</span><input type="text" id="f-s2a" placeholder="번호"></div>
+          <div><span>순호②</span><input type="text" id="f-s2b" placeholder="번호"></div>
+          <div><span>수량 (kg)</span><input type="text" inputmode="decimal" class="ni" id="f-u2" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">3차 담금</span>
+        <div class="fg-group-body">
+          <div><span>순호①</span><input type="text" id="f-s3a" placeholder="번호"></div>
+          <div><span>순호②</span><input type="text" id="f-s3b" placeholder="번호"></div>
+          <div><span>수량 (kg)</span><input type="text" inputmode="decimal" class="ni" id="f-u3" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">4차 담금</span>
+        <div class="fg-group-body">
+          <div><span>순호①</span><input type="text" id="f-s4a" placeholder="번호"></div>
+          <div><span>순호②</span><input type="text" id="f-s4b" placeholder="번호"></div>
+          <div><span>수량 (kg)</span><input type="text" inputmode="decimal" class="ni" id="f-u4" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg"><label>비고</label><input type="text" id="f-memo" placeholder="비고"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addRice('${m}')">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-person','f-inc','f-price','f-src','f-s2a','f-s2b','f-u2','f-s3a','f-s3b','f-u3','f-s4a','f-s4b','f-u4','f-memo'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr">
+    <h3 class="card-title">원료 수불 원장 — ${m}</h3>
+    <span class="badge">현재고 ${fmtN(curBal.toFixed(3))} kg</span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th rowspan="3">월일</th><th rowspan="3">담당자</th>
+          <th colspan="3">입</th>
+          <th colspan="9">사 용</th>
+          <th rowspan="3">현계수량<br>(kg)</th><th rowspan="3">비고</th>
+          <th rowspan="3" class="no-print">관리</th>
+        </tr>
+        <tr>
+          <th rowspan="2">수량(kg)</th><th rowspan="2">가격</th><th rowspan="2">거래선</th>
+          <th colspan="3">2차 담금</th>
+          <th colspan="3">3차 담금</th>
+          <th colspan="3">4차 담금</th>
+        </tr>
+        <tr>
+          <th>순호①</th><th>순호②</th><th>수량(kg)</th>
+          <th>순호①</th><th>순호②</th><th>수량(kg)</th>
+          <th>순호①</th><th>순호②</th><th>수량(kg)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="2" class="prev">전 병 이 월</td>
+          <td></td><td></td><td></td>
+          <td></td><td></td><td></td>
+          <td></td><td></td><td></td>
+          <td></td><td></td><td></td>
+          <td class="bal">${fmtN(DB.prev[m])}</td>
+          <td></td><td class="no-print"></td>
+        </tr>
+        ${comp.map(r=>`<tr>
+          <td>${fmtD(r.date)}</td><td>${escHtml(r.person||'')}</td>
+          <td class="r">${fmtN(r.inc)}</td>
+          <td class="r">${fmtN(r.price)}</td>
+          <td>${escHtml(r.src||'')}</td>
+          <td>${escHtml(r.s2a||r.s2||'')}</td><td>${escHtml(r.s2b||'')}</td><td class="r">${fmtN(r.u2)}</td>
+          <td>${escHtml(r.s3a||r.s3||'')}</td><td>${escHtml(r.s3b||'')}</td><td class="r">${fmtN(r.u3)}</td>
+          <td>${escHtml(r.s4a||r.s4||'')}</td><td>${escHtml(r.s4b||'')}</td><td class="r">${fmtN(r.u4)}</td>
+          <td class="bal">${fmtN(r._bal.toFixed(3))}</td>
+          <td>${escHtml(r.memo||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('rice','${m}',${r.id})">수정</button>
+            <button class="btn-del" onclick="delRice('${m}',${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!comp.length?`<tr><td colspan="17" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 입국 수불 ──────────────────────────────────────────
+function pageKoji() {
+  const rows = DB.koji||[];
+  return `
+<div class="panel-hdr">
+  <div><h2 class="panel-title">입국 수불</h2></div>
+</div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>검사 월일</label><input type="date" id="f-date" value="${td()}"></div>
+      ${pField('f-person')}
+      <div class="fg-group">
+        <span class="fg-group-lbl">담금예정개수</span>
+        <div class="fg-group-body">
+          <div><span>밑술 (개)</span><input type="text" inputmode="decimal" class="ni" id="f-ms-cnt" placeholder="0"></div>
+          <div><span>술덧 (개)</span><input type="text" inputmode="decimal" class="ni" id="f-sd-cnt" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">원료수량 (kg)</span>
+        <div class="fg-group-body">
+          <div><span>밑술</span><input type="text" inputmode="decimal" class="ni" id="f-ms-raw" placeholder="0"></div>
+          <div><span>술덧</span><input type="text" inputmode="decimal" class="ni" id="f-sd-raw" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">담금용기순호 — 밑술</span>
+        <div class="fg-group-body">
+          <div><span>작업전</span><input type="text" id="f-ms-b" placeholder="순호"></div>
+          <div><span>작업후</span><input type="text" id="f-ms-a" placeholder="순호"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">담금용기순호 — 술덧</span>
+        <div class="fg-group-body">
+          <div><span>작업전</span><input type="text" id="f-sd-b" placeholder="순호"></div>
+          <div><span>작업후</span><input type="text" id="f-sd-a" placeholder="순호"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addKoji()">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-person','f-ms-cnt','f-sd-cnt','f-ms-raw','f-sd-raw','f-ms-b','f-ms-a','f-sd-b','f-sd-a'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">입국 수불 원장</h3></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th rowspan="3">검사월일</th>
+          <th rowspan="3">담당자</th>
+          <th colspan="2">담금예정개수</th>
+          <th colspan="2">원료수량 (kg)</th>
+          <th colspan="2">담금용기순호 — 밑술</th>
+          <th colspan="2">담금용기순호 — 술덧</th>
+          <th rowspan="3" class="no-print">관리</th>
+        </tr>
+        <tr>
+          <th>밑술</th><th>술덧</th>
+          <th>밑술</th><th>술덧</th>
+          <th>작업전</th><th>작업후</th>
+          <th>작업전</th><th>작업후</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td class="ctr">${fmtD(r.date)}</td>
+          <td class="ctr">${escHtml(r.person||'')}</td>
+          <td class="r">${fmtN(r.ms_cnt)}</td>
+          <td class="r">${fmtN(r.sd_cnt)}</td>
+          <td class="r">${fmtN(r.ms_raw)}</td>
+          <td class="r">${fmtN(r.sd_raw)}</td>
+          <td class="ctr">${escHtml(r.ms_b||'')}</td>
+          <td class="ctr">${escHtml(r.ms_a||'')}</td>
+          <td class="ctr">${escHtml(r.sd_b||'')}</td>
+          <td class="ctr">${escHtml(r.sd_a||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('koji','',${r.id})">수정</button>
+            <button class="btn-del" onclick="delKoji(${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!rows.length?`<tr><td colspan="11" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 술덧담금 및 걸름 ───────────────────────────────────
+function pageMash() {
+  const rows = DB.mash||[];
+  return `
+<div class="panel-hdr"><div><h2 class="panel-title">술덧담금 및 술덧걸름</h2></div></div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>담금 일자</label><input type="date" id="f-date" value="${td()}"></div>
+      <div class="fg"><label>담금 번호</label><input type="text" id="f-bno" placeholder="번호"></div>
+      <div class="fg"><label>원료 종류</label><input type="text" id="f-rtype" placeholder="평화미/백미"></div>
+      <div class="fg"><label>쌀 사용량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="f-rice" placeholder="0"></div>
+      <div class="fg"><label>물 (L)</label><input type="text" inputmode="decimal" class="ni" id="f-water" placeholder="0"></div>
+      <div class="fg"><label>효모 (g)</label><input type="text" inputmode="decimal" class="ni" id="f-yeast" placeholder="0"></div>
+      <div class="fg"><label>곡자 (kg)</label><input type="text" inputmode="decimal" class="ni" id="f-koji" placeholder="0"></div>
+      <div class="fg"><label>담금량 (L)</label><input type="text" inputmode="decimal" class="ni" id="f-fvol" placeholder="0"></div>
+      <div class="fg"><label>걸름 일자</label><input type="date" id="f-fdate"></div>
+      <div class="fg"><label>걸른량 (L)</label><input type="text" inputmode="decimal" class="ni" id="f-filt" placeholder="0"></div>
+      <div class="fg"><label>주정분 (%)</label><input type="text" inputmode="decimal" class="ni" id="f-alc" placeholder="0"></div>
+      <div class="fg"><label>산도</label><input type="text" inputmode="decimal" class="ni" id="f-acid" placeholder="0"></div>
+      <div class="fg"><label>비고</label><input type="text" id="f-memo"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addMash()">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-bno','f-rtype','f-rice','f-water','f-yeast','f-koji','f-fvol','f-fdate','f-filt','f-alc','f-acid','f-memo'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">술덧담금 및 걸름 원장</h3></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th rowspan="2">담금일</th><th rowspan="2">담금번호</th><th rowspan="2">원료종류</th>
+          <th rowspan="2">쌀(kg)</th><th rowspan="2">물(L)</th><th rowspan="2">효모(g)</th>
+          <th rowspan="2">곡자(kg)</th><th rowspan="2">담금량(L)</th>
+          <th colspan="4">걸름</th>
+          <th rowspan="2">비고</th><th rowspan="2" class="no-print">관리</th>
+        </tr>
+        <tr><th>걸름일</th><th>걸른량(L)</th><th>주정분(%)</th><th>산도</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td>${fmtD(r.date)}</td><td>${escHtml(r.bno||'')}</td><td>${escHtml(r.rtype||'')}</td>
+          <td class="r">${fmtN(r.rice)}</td><td class="r">${fmtN(r.water)}</td>
+          <td class="r">${fmtN(r.yeast)}</td><td class="r">${fmtN(r.koji)}</td>
+          <td class="r">${fmtN(r.fvol)}</td>
+          <td>${fmtD(r.fdate)}</td><td class="r">${fmtN(r.filt)}</td>
+          <td class="r">${fmtN(r.alc)}</td><td class="r">${fmtN(r.acid)}</td>
+          <td>${escHtml(r.memo||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('mash','',${r.id})">수정</button>
+            <button class="btn-del" onclick="delMash(${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!rows.length?`<tr><td colspan="14" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 술지거미 수불 ──────────────────────────────────────
+function pageLees() {
+  const rows = DB.lees||[];
+  let bal = 0;
+  const comp = rows.map(r => {
+    bal = bal + (parseFloat(r.inc)||0) - (parseFloat(r.out)||0);
+    return {...r, _bal: bal};
+  });
+  const curBal = comp.length ? comp[comp.length-1]._bal : 0;
+  return `
+<div class="panel-hdr"><div><h2 class="panel-title">술지거미 수불</h2>
+<div class="panel-sub">현재고: <strong>${fmtN(curBal.toFixed(3))} kg</strong></div></div></div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>월일</label><input type="date" id="f-date" value="${td()}"></div>
+      ${pField('f-person')}
+      <div class="fg"><label>발생량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="f-inc" placeholder="0"></div>
+      <div class="fg"><label>처리방법</label><input type="text" id="f-method" placeholder="처리 방법"></div>
+      <div class="fg"><label>처리량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="f-out" placeholder="0"></div>
+      <div class="fg"><label>비고</label><input type="text" id="f-memo"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addLees()">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-person','f-inc','f-method','f-out','f-memo'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">술지거미 수불 원장</h3><span class="badge">현재고 ${fmtN(curBal.toFixed(3))} kg</span></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead><tr><th>월일</th><th>담당자</th><th>발생량(kg)</th><th>처리방법</th><th>처리량(kg)</th><th>현재고(kg)</th><th>비고</th><th class="no-print">관리</th></tr></thead>
+      <tbody>
+        ${comp.map(r=>`<tr>
+          <td>${fmtD(r.date)}</td><td>${escHtml(r.person||'')}</td>
+          <td class="r">${fmtN(r.inc)}</td><td>${escHtml(r.method||'')}</td>
+          <td class="r">${fmtN(r.out)}</td><td class="bal">${fmtN(r._bal.toFixed(3))}</td>
+          <td>${escHtml(r.memo||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('lees','',${r.id})">수정</button>
+            <button class="btn-del" onclick="delLees(${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!comp.length?`<tr><td colspan="8" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 1차 술덧 담금 ──────────────────────────────────────
+function pageFirstMash() {
+  const rows = DB.firstmash||[];
+  return `
+<div class="panel-hdr"><div><h2 class="panel-title">1차 술덧 담금</h2></div></div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+
+      <!-- 1차 담금 일자 -->
+      <div class="fg">
+        <label>1차 담금 일자</label>
+        <input type="date" id="f-date" value="${td()}">
+      </div>
+
+      <!-- 담금 순호 (시작 전 / 시작 후) -->
+      <div class="fg-group">
+        <div class="fg-group-lbl">담금 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="f-bno-b" placeholder="순호"></div>
+          <div><span>시작 후</span><input type="text" id="f-bno-a" placeholder="순호"></div>
+        </div>
+      </div>
+
+      <!-- 용기 번호 -->
+      <div class="fg">
+        <label>용기 번호</label>
+        <input type="text" id="f-ctnr-no" placeholder="">
+      </div>
+
+      <!-- 담금 (입실심 / 용량) -->
+      <div class="fg-group">
+        <div class="fg-group-lbl">담금</div>
+        <div class="fg-group-body">
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="f-inc-depth" placeholder="0"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-inc-vol" placeholder="0"></div>
+        </div>
+      </div>
+
+      <!-- 숙성검사 (월일 / 입실심 / 용량) -->
+      <div class="fg-group fg-group-wide">
+        <div class="fg-group-lbl">숙성검사</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="f-chk-date"></div>
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="f-chk-depth" placeholder="0"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-chk-vol" placeholder="0"></div>
+        </div>
+      </div>
+
+      <!-- 2차 담금 순호 (시작전 / 시작후) -->
+      <div class="fg-group">
+        <div class="fg-group-lbl">2차 담금 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="f-bno2-b" placeholder="순호"></div>
+          <div><span>시작 후</span><input type="text" id="f-bno2-a" placeholder="순호"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addFirstMash()">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-bno-b','f-bno-a','f-ctnr-no','f-inc-depth','f-inc-vol','f-chk-date','f-chk-depth','f-chk-vol','f-bno2-b','f-bno2-a'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">1차 술덧 담금 원장</h3></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th rowspan="2">담금 일자</th>
+          <th colspan="2">담금 순호</th>
+          <th rowspan="2">용기 번호</th>
+          <th colspan="2">담금</th>
+          <th colspan="3">숙성검사</th>
+          <th colspan="2">2차 담금 순호</th>
+          <th rowspan="2" class="no-print">관리</th>
+        </tr>
+        <tr>
+          <th>시작 전</th><th>시작 후</th>
+          <th>입실심</th><th>용량 (L)</th>
+          <th>월일</th><th>입실심</th><th>용량 (L)</th>
+          <th>시작 전</th><th>시작 후</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td>${fmtD(r.date)}</td>
+          <td class="ctr">${escHtml(r.bno_b||'')}</td>
+          <td class="ctr">${escHtml(r.bno_a||'')}</td>
+          <td class="ctr">${escHtml(r.ctnr_no||'')}</td>
+          <td class="r">${r.inc_depth||''}</td>
+          <td class="r">${fmtN(r.inc_vol)}</td>
+          <td>${r.chk_date?fmtD(r.chk_date):''}</td>
+          <td class="r">${r.chk_depth||''}</td>
+          <td class="r">${fmtN(r.chk_vol)}</td>
+          <td class="ctr">${escHtml(r.bno2_b||'')}</td>
+          <td class="ctr">${escHtml(r.bno2_a||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('firstmash','',${r.id})">수정</button>
+            <button class="btn-del" onclick="delFirstMash(${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!rows.length?`<tr><td colspan="12" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 밑술 제조 ──────────────────────────────────────────
+function pageBaseLiq() {
+  const rows = DB.baseliq||[];
+  return `
+<div class="panel-hdr"><div><h2 class="panel-title">밑술 제조</h2></div></div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+
+      <!-- 검사 (월일 / 인) -->
+      <div class="fg-group">
+        <div class="fg-group-lbl">검사</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="f-insp-date" value="${td()}"></div>
+          <div><span>인</span><input type="text" id="f-insp-person" placeholder="담당자"></div>
+        </div>
+      </div>
+
+      <!-- 기호 -->
+      <div class="fg">
+        <label>기호</label>
+        <input type="text" id="f-symbol" placeholder="">
+      </div>
+
+      <!-- 담금 순호 (시작전 / 시작후) -->
+      <div class="fg-group">
+        <div class="fg-group-lbl">담금 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="f-bno-b" placeholder="순호"></div>
+          <div><span>시작 후</span><input type="text" id="f-bno-a" placeholder="순호"></div>
+        </div>
+      </div>
+
+      <!-- 용기 번호 -->
+      <div class="fg">
+        <label>용기 번호</label>
+        <input type="text" id="f-ctnr-no" placeholder="">
+      </div>
+
+      <!-- 담금 (월일 / 입실심 / 용량) -->
+      <div class="fg-group fg-group-wide">
+        <div class="fg-group-lbl">담금</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="f-inc-date"></div>
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="f-inc-depth" placeholder="0"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-inc-vol" placeholder="0"></div>
+        </div>
+      </div>
+
+      <!-- 숙성검사 (월일 / 입실심 / 용량 / 비율) -->
+      <div class="fg-group fg-group-wide">
+        <div class="fg-group-lbl">숙성검사</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="f-chk-date"></div>
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="f-chk-depth" placeholder="0"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-chk-vol" placeholder="0"></div>
+          <div><span>비율 (%)</span><input type="text" inputmode="decimal" class="ni" id="f-chk-rate" placeholder="0"></div>
+        </div>
+      </div>
+
+      <!-- 술덧순호 (시작전 / 시작후) -->
+      <div class="fg-group">
+        <div class="fg-group-lbl">술덧 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="f-mash-bno-b" placeholder="순호"></div>
+          <div><span>시작 후</span><input type="text" id="f-mash-bno-a" placeholder="순호"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addBaseLiq()">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-insp-date','f-insp-person','f-symbol','f-bno-b','f-bno-a','f-ctnr-no','f-inc-date','f-inc-depth','f-inc-vol','f-chk-date','f-chk-depth','f-chk-vol','f-chk-rate','f-mash-bno-b','f-mash-bno-a'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">밑술 제조 원장</h3></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th colspan="2">검사</th>
+          <th rowspan="2">기호</th>
+          <th colspan="2">담금 순호</th>
+          <th rowspan="2">용기 번호</th>
+          <th colspan="3">담금</th>
+          <th colspan="4">숙성검사</th>
+          <th colspan="2">술덧 순호</th>
+          <th rowspan="2" class="no-print">관리</th>
+        </tr>
+        <tr>
+          <th>월일</th><th>인</th>
+          <th>시작 전</th><th>시작 후</th>
+          <th>월일</th><th>입실심</th><th>용량 (L)</th>
+          <th>월일</th><th>입실심</th><th>용량 (L)</th><th>비율 (%)</th>
+          <th>시작 전</th><th>시작 후</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td>${r.insp_date?fmtD(r.insp_date):''}</td>
+          <td>${escHtml(r.insp_person||'')}</td>
+          <td>${escHtml(r.symbol||'')}</td>
+          <td>${escHtml(r.bno_b||'')}</td>
+          <td>${escHtml(r.bno_a||'')}</td>
+          <td>${escHtml(r.ctnr_no||'')}</td>
+          <td>${r.inc_date?fmtD(r.inc_date):''}</td>
+          <td class="r">${r.inc_depth||''}</td>
+          <td class="r">${fmtN(r.inc_vol)}</td>
+          <td>${r.chk_date?fmtD(r.chk_date):''}</td>
+          <td class="r">${r.chk_depth||''}</td>
+          <td class="r">${fmtN(r.chk_vol)}</td>
+          <td class="r">${r.chk_rate||''}</td>
+          <td>${escHtml(r.mash_bno_b||'')}</td>
+          <td>${escHtml(r.mash_bno_a||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('baseliq','',${r.id})">수정</button>
+            <button class="btn-del" onclick="delBaseLiq(${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!rows.length?`<tr><td colspan="16" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 주류 수불 ──────────────────────────────────────────
+function pageLiquor() {
+  const rows = DB.liquor||[];
+  let bal = parseFloat(DB.prev['주류'])||0;
+  const comp = rows.map(r => {
+    bal = bal + (parseFloat(r.inc)||0) - (parseFloat(r.out)||0);
+    return {...r, _bal: bal};
+  });
+  const curBal = comp.length ? comp[comp.length-1]._bal : (parseFloat(DB.prev['주류'])||0);
+  return `
+<div class="panel-hdr">
+  <div><h2 class="panel-title">주류 수불</h2>
+  <div class="panel-sub">현재고: <strong>${fmtN(curBal.toFixed(2))} L</strong></div></div>
+</div>
+<div class="card no-print">
+  <div class="card-hdr"><h3 class="card-title">데이터 입력</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>검사 월일</label><input type="date" id="f-date" value="${td()}"></div>
+      ${pField('f-person')}
+      <div class="fg-group fg-group-wide">
+        <span class="fg-group-lbl">걸름수량</span>
+        <div class="fg-group-body">
+          <div><span>담금순호 사용전</span><input type="text" id="f-bno-b" placeholder="순호"></div>
+          <div><span>담금순호 사용후</span><input type="text" id="f-bno-a" placeholder="순호"></div>
+          <div><span>수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-inc" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg-group fg-group-wide">
+        <span class="fg-group-lbl">출고수량</span>
+        <div class="fg-group-body">
+          <div><span>수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-out" placeholder="0"></div>
+          <div><span>가격 (원)</span><input type="text" inputmode="decimal" class="ni" id="f-price" placeholder="0"></div>
+          <div><span>배달자</span><input type="text" id="f-driver" placeholder="이름"></div>
+          <div><span>매도처</span><input type="text" id="f-dest" placeholder="거래처"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">결감 / 잔량</span>
+        <div class="fg-group-body">
+          <div><span>잔수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-remain" placeholder="0"></div>
+          <div><span>결감수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="f-loss" placeholder="0"></div>
+          <div><span>결감비율 (%)</span><input type="text" inputmode="decimal" class="ni" id="f-loss-rate" placeholder="0"></div>
+        </div>
+      </div>
+      <div class="fg"><label>적요</label><input type="text" id="f-memo"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addLiquor()">추가</button>
+      <button class="btn btn-ghost" onclick="clearForm(['f-date','f-person','f-bno-b','f-bno-a','f-inc','f-out','f-price','f-driver','f-dest','f-remain','f-loss','f-loss-rate','f-memo'])">초기화</button>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">주류 수불 원장</h3><span class="badge">현재고 ${fmtN(curBal.toFixed(2))} L</span></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead>
+        <tr>
+          <th rowspan="2">검사월일</th>
+          <th rowspan="2">담당자</th>
+          <th colspan="3">걸름수량</th>
+          <th colspan="4">출고수량</th>
+          <th rowspan="2">잔수량 (L)</th>
+          <th rowspan="2">결감수량 (L)</th>
+          <th rowspan="2">결감비율 (%)</th>
+          <th rowspan="2">적요</th>
+          <th rowspan="2" class="no-print">관리</th>
+        </tr>
+        <tr>
+          <th>순호 사용전</th><th>순호 사용후</th><th>수량 (L)</th>
+          <th>수량 (L)</th><th>가격 (원)</th><th>배달자</th><th>매도처</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" class="prev">전 병 이 월</td><td></td><td></td><td></td><td></td><td></td><td class="bal">${fmtN(DB.prev['주류'])}</td><td></td><td></td><td></td><td class="no-print"></td></tr>
+        ${comp.map(r=>`<tr>
+          <td>${fmtD(r.date)}</td>
+          <td>${escHtml(r.person||'')}</td>
+          <td class="ctr">${escHtml(r.bno_b||'')}</td>
+          <td class="ctr">${escHtml(r.bno_a||'')}</td>
+          <td class="r">${fmtN(r.inc)}</td>
+          <td class="r">${fmtN(r.out)}</td>
+          <td class="r">${fmtN(r.price)}</td>
+          <td>${escHtml(r.driver||'')}</td>
+          <td>${escHtml(r.dest||'')}</td>
+          <td class="bal">${r.remain ? fmtN(r.remain) : fmtN(r._bal.toFixed(2))}</td>
+          <td class="r">${fmtN(r.loss)}</td>
+          <td class="r">${fmtN(r.loss_rate)}</td>
+          <td>${escHtml(r.memo||'')}</td>
+          <td class="no-print">
+            <button class="btn-edit" onclick="openEdit('liquor','',${r.id})">수정</button>
+            <button class="btn-del" onclick="delLiquor(${r.id})">삭제</button>
+          </td>
+        </tr>`).join('')}
+        ${!comp.length?`<tr><td colspan="14" class="empty-row">데이터가 없습니다<div class="empty-hint">위 입력 폼에서 데이터를 추가하세요</div></td></tr>`:''}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── BALANCE HELPERS ────────────────────────────────────
+const _matUnits = { 평화미:'kg', 백미:'kg', 효모:'g', 곡자:'kg', 아스파탐:'g', 구연산:'g' };
+
+function calcMatBal(m, beforeDate) {
+  let bal = parseFloat(DB.prev[m])||0;
+  const from = DB.prevDate || '';
+  const isRice = ['평화미','백미'].includes(m);
+  (DB.raw[m]||[]).filter(r => (!from || r.date >= from) && (!beforeDate || r.date < beforeDate)).forEach(r => {
+    const inc = parseFloat(r.inc)||0;
+    if (isRice) bal += inc - (parseFloat(r.u2)||0) - (parseFloat(r.u3)||0) - (parseFloat(r.u4)||0);
+    else {
+      bal += inc - (parseFloat(r.ms)||0) - (parseFloat(r.sd)||0);
+      if (r.mbal !== undefined && r.mbal !== '') bal = parseFloat(r.mbal)||bal;
+    }
+  });
+  return bal;
+}
+
+function calcMatDay(m, date) {
+  const rows = (DB.raw[m]||[]).filter(r => r.date === date);
+  let inc=0, out=0;
+  const isRice = ['평화미','백미'].includes(m);
+  rows.forEach(r => {
+    inc += parseFloat(r.inc)||0;
+    if (isRice) out += (parseFloat(r.u2)||0)+(parseFloat(r.u3)||0)+(parseFloat(r.u4)||0);
+    else out += (parseFloat(r.ms)||0)+(parseFloat(r.sd)||0);
+  });
+  return { inc, out };
+}
+
+function calcMatRange(m, from, to) {
+  // to is exclusive upper bound (next month start)
+  const pFrom = DB.prevDate || '';
+  const effFrom = (pFrom && pFrom > from) ? pFrom : from;
+  const rows = (DB.raw[m]||[]).filter(r => r.date >= effFrom && r.date < to);
+  let inc=0, out=0;
+  const isRice = ['평화미','백미'].includes(m);
+  rows.forEach(r => {
+    inc += parseFloat(r.inc)||0;
+    if (isRice) out += (parseFloat(r.u2)||0)+(parseFloat(r.u3)||0)+(parseFloat(r.u4)||0);
+    else out += (parseFloat(r.ms)||0)+(parseFloat(r.sd)||0);
+  });
+  return { inc, out };
+}
+
+function calcLiqBal(beforeDate) {
+  let bal = parseFloat(DB.prev['주류'])||0;
+  const from = DB.prevDate || '';
+  (DB.liquor||[]).filter(r => (!from || r.date >= from) && (!beforeDate || r.date < beforeDate)).forEach(r => {
+    bal += (parseFloat(r.inc)||0) - (parseFloat(r.out)||0);
+  });
+  return bal;
+}
+
+function calcLiqDay(date) {
+  let inc=0, out=0;
+  (DB.liquor||[]).filter(r=>r.date===date).forEach(r=>{ inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.out)||0); });
+  return { inc, out };
+}
+
+function calcLiqRange(from, to) {
+  let inc=0, out=0;
+  const pFrom = DB.prevDate || '';
+  const effFrom = (pFrom && pFrom > from) ? pFrom : from;
+  (DB.liquor||[]).filter(r=>r.date>=effFrom&&r.date<to).forEach(r=>{ inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.out)||0); });
+  return { inc, out };
+}
+
+function calcCtnrBal(type, beforeDate) {
+  let bal = parseFloat((DB.prevCtnr||{})[type]||0);
+  const from = DB.prevDate || '';
+  (DB.ctnr||[]).filter(r=>r.type===type&&(!from||r.date>=from)&&(!beforeDate||r.date<beforeDate)).forEach(r=>{
+    bal += (parseFloat(r.inc)||0) - (parseFloat(r.out)||0) - (parseFloat(r.broken)||0);
+  });
+  return bal;
+}
+
+function calcCtnrDay(type, date) {
+  let inc=0, out=0, broken=0;
+  (DB.ctnr||[]).filter(r=>r.type===type&&r.date===date).forEach(r=>{
+    inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.out)||0); broken+=(parseFloat(r.broken)||0);
+  });
+  return { inc, out, broken };
+}
+
+function calcCtnrRange(type, from, to) {
+  let inc=0, out=0, broken=0;
+  const pFrom = DB.prevDate || '';
+  const effFrom = (pFrom && pFrom > from) ? pFrom : from;
+  (DB.ctnr||[]).filter(r=>r.type===type&&r.date>=effFrom&&r.date<to).forEach(r=>{
+    inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.out)||0); broken+=(parseFloat(r.broken)||0);
+  });
+  return { inc, out, broken };
+}
+
+// ── CALENDAR HELPERS ───────────────────────────────────
+function buildCalendar(selDate) {
+  const [sy, sm, sd] = selDate.split('-').map(Number);
+  const datesWithData = new Set();
+  const pushDates = arr => (arr||[]).forEach(r=>{ if(r.date) datesWithData.add(r.date); });
+  pushDates(DB.liquor); pushDates(DB.mash); pushDates(DB.firstmash);
+  pushDates(DB.baseliq); pushDates(DB.lees); pushDates(DB.koji); pushDates(DB.ctnr);
+  Object.values(DB.raw||{}).forEach(arr => pushDates(arr));
+
+  const firstDay    = new Date(sy, sm-1, 1).getDay();
+  const daysInMonth = new Date(sy, sm, 0).getDate();
+  const today       = td();
+  const monthPfx    = `${sy}-${String(sm).padStart(2,'0')}`;
+  const dataCnt     = Array.from(datesWithData).filter(d=>d.startsWith(monthPfx)).length;
+
+  let cells = '';
+  for (let i=0; i<firstDay; i++) cells += '<div class="cal-cell empty"></div>';
+  for (let d=1; d<=daysInMonth; d++) {
+    const ds = `${monthPfx}-${String(d).padStart(2,'0')}`;
+    const cls = ['cal-cell', ds===today&&'today', d===sd&&'selected'].filter(Boolean).join(' ');
+    cells += `<div class="${cls}" onclick="renderDailyReport('${ds}')">
+      <span class="cal-day-num">${d}</span>
+      ${datesWithData.has(ds)?'<span class="cal-dot"></span>':''}
+    </div>`;
+  }
+
+  return `<div class="cal-widget">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calNav(-1,'${selDate}')">‹</button>
+      <span class="cal-month-lbl">${sy}년 ${sm}월</span>
+      <button class="cal-nav-btn" onclick="calNav(1,'${selDate}')">›</button>
+    </div>
+    <div class="cal-dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-legend">${dataCnt ? (dataCnt + '일 데이터 있음') : '데이터 없음'}&nbsp;·&nbsp;<span style="display:inline-flex;align-items:center;gap:3px"><span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block"></span>데이터 있는 날</span></div>
+    <button class="cal-today-btn" onclick="renderDailyReport('${td()}')">오늘로 이동</button>
+  </div>`;
+}
+
+function calNav(dir, curDate) {
+  const [y, m, d] = curDate.split('-').map(Number);
+  let nm = m + dir, ny = y;
+  if (nm < 1) { nm = 12; ny--; }
+  if (nm > 12) { nm = 1; ny++; }
+  const nd = Math.min(d, new Date(ny, nm, 0).getDate());
+  renderDailyReport(`${ny}-${String(nm).padStart(2,'0')}-${String(nd).padStart(2,'0')}`);
+}
+
+// ── 현황일보 ───────────────────────────────────────────
+function renderDailyReport(dateStr) {
+  const date = dateStr || td();
+  const [y,m,d] = date.split('-');
+  const co = (DB.settings && DB.settings.company) || '서울탁주';
+  const mats = ['평화미','백미','효모','곡자','아스파탐','구연산'];
+
+  // ① 원료
+  const matData = mats.map(name => {
+    const prev = calcMatBal(name, date);
+    const { inc, out } = calcMatDay(name, date);
+    return { name, unit:_matUnits[name], prev, inc, out, bal:prev+inc-out };
+  });
+
+  // ② 주류
+  const liqPrev = calcLiqBal(date);
+  const { inc:liqIn, out:liqOut } = calcLiqDay(date);
+  const liqBal = liqPrev + liqIn - liqOut;
+
+  // ③ 담금 (술덧+1차+밑술)
+  const mashToday = [
+    ...(DB.mash||[]).filter(r=>r.date===date).map(r=>({...r,_k:'술덧'})),
+    ...(DB.firstmash||[]).filter(r=>r.date===date).map(r=>({...r,_k:'1차술덧'})),
+    ...(DB.baseliq||[]).filter(r=>r.date===date).map(r=>({...r,_k:'밑술'})),
+  ];
+
+  // ④ 용수 (물) 당일 사용량
+  const todayWater = mashToday.reduce((a,r)=>a+(parseFloat(r.water)||0), 0);
+
+  // ⑤ 용기·마개
+  const ctnrData = ['용기','마개'].map(type => {
+    const prev = calcCtnrBal(type, date);
+    const { inc, out, broken } = calcCtnrDay(type, date);
+    return { type, prev, inc, out, broken, bal:prev+inc-out-broken };
+  });
+
+  // 원료수불 상세 (밀술/술덧 분리)
+  const rawDetail = mats.map(name => {
+    const isRice = ['평화미','백미'].includes(name);
+    const prev = calcMatBal(name, date);
+    const rows = (DB.raw[name]||[]).filter(r=>r.date===date);
+    let inc=0, ms=0, sd=0, u2=0, u3=0, u4=0;
+    rows.forEach(r=>{
+      inc += parseFloat(r.inc)||0;
+      if (isRice){ u2+=(parseFloat(r.u2)||0); u3+=(parseFloat(r.u3)||0); u4+=(parseFloat(r.u4)||0); }
+      else { ms+=(parseFloat(r.ms)||0); sd+=(parseFloat(r.sd)||0); }
+    });
+    const out = isRice ? u2+u3+u4 : ms+sd;
+    return { name, unit:_matUnits[name], prev, inc, ms:isRice?u2:ms, sd:isRice?u3+u4:sd, out, bal:prev+inc-out };
+  });
+
+  document.getElementById('main').innerHTML = `
+<div class="daily-wrap">
+
+<!-- ── 좌측: 달력 + 빠른입력 ── -->
+<div class="cal-panel no-print">
+  ${buildCalendar(date)}
+
+  <!-- 주류 제성·출고 입력 -->
+  <div class="qe-card">
+    <div class="qe-card-hdr" onclick="toggleQE('qe-liq')">
+      <span>주류 제성·출고 입력</span><span id="qe-liq-arrow">▾</span>
+    </div>
+    <div class="qe-card-body" id="qe-liq">
+      ${pFieldVal('qe-person','')}
+      <div class="fg"><label>종별</label><input type="text" id="qe-type" placeholder="생탁주/막걸리"></div>
+      <div class="fg"><label>제성량 (ℓ)</label><input type="text" inputmode="decimal" class="ni" id="qe-inc" placeholder="0"></div>
+      <div class="fg"><label>출고량 (ℓ)</label><input type="text" inputmode="decimal" class="ni" id="qe-out" placeholder="0"></div>
+      <div class="fg"><label>출고처</label><input type="text" id="qe-dest" placeholder="출고처"></div>
+      <div class="fg"><label>비고</label><input type="text" id="qe-memo"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;font-size:12px" onclick="quickAddLiquor('${date}')">추가</button>
+    </div>
+  </div>
+
+  <!-- 용기·마개 입력 -->
+  <div class="qe-card">
+    <div class="qe-card-hdr" onclick="toggleQE('qe-ctnr')">
+      <span>용기·마개 입력</span><span id="qe-ctnr-arrow">▾</span>
+    </div>
+    <div class="qe-card-body" id="qe-ctnr">
+      <div class="fg"><label>구분</label>
+        <select id="ctnr-type"><option value="용기">용기</option><option value="마개">마개</option></select>
+      </div>
+      <div class="fg"><label>당일입고</label><input type="text" inputmode="decimal" class="ni" id="ctnr-inc" placeholder="0"></div>
+      <div class="fg"><label>당일출고</label><input type="text" inputmode="decimal" class="ni" id="ctnr-out" placeholder="0"></div>
+      <div class="fg"><label>파손폐기</label><input type="text" inputmode="decimal" class="ni" id="ctnr-broken" placeholder="0"></div>
+      <div class="fg"><label>비고</label><input type="text" id="ctnr-memo"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;font-size:12px" onclick="saveCtnr('${date}')">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 우측: 현황일보 본문 ── -->
+<div class="daily-content">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px" class="no-print">
+  <span style="font-size:17px;font-weight:700;color:var(--primary)">${y}년 ${m}월 ${d}일 (${['일','월','화','수','목','금','토'][new Date(y,m-1,d).getDay()]})</span>
+  <button class="btn btn-ghost" onclick="window.print()" style="margin-left:auto;font-size:12px">🖨 인쇄</button>
+</div>
+<div class="rpt-paper">
+  <div class="rpt-header">
+    <div class="rpt-co">${co}</div>
+    <div class="rpt-title">주류 및 자재 현황일보</div>
+    <div class="rpt-date-stamp">${y}년 ${m}월 ${d}일 현재</div>
+  </div>
+
+  <!-- 1. 주류사입현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">1. 주류사입현황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>이월수량 (ℓ)</th>
+          <th>당일사입수량 (ℓ)</th>
+          <th>계 (ℓ)</th>
+          <th>동상제성수량 (ℓ)</th>
+          <th>당일잔수량 (ℓ)</th>
+          <th>적요</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="bal">${fmtN(liqPrev.toFixed(2))}</td>
+          <td class="r">${fmtN(liqIn.toFixed(2))}</td>
+          <td class="bal">${fmtN((liqPrev+liqIn).toFixed(2))}</td>
+          <td class="r">${fmtN(liqOut.toFixed(2))}</td>
+          <td class="bal">${fmtN(liqBal.toFixed(2))}</td>
+          <td>${(DB.liquor||[]).filter(r=>r.date===date).map(r=>escHtml(r.memo||'')).filter(Boolean).join(', ')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 2. 주류제성 및 출고현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">2. 주류제성 및 출고현황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>전일재고 (ℓ)</th><th>당일제성 (ℓ)</th><th>합계 (ℓ)</th>
+          <th>당일출고 (ℓ)</th><th>잔량 (ℓ)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="bal">${fmtN(liqPrev.toFixed(2))}</td>
+          <td class="r">${fmtN(liqIn.toFixed(2))}</td>
+          <td class="bal">${fmtN((liqPrev+liqIn).toFixed(2))}</td>
+          <td class="r">${fmtN(liqOut.toFixed(2))}</td>
+          <td class="bal">${fmtN(liqBal.toFixed(2))}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. 담금현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">3. 주류담금현황 (당일)</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>구분</th><th>담금번호</th><th>원료종류</th>
+          <th>원료량(kg)</th><th>물(L)</th><th>효모(g)</th>
+          <th>담금량(L)</th><th>걸른량(L)</th><th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${mashToday.length ? mashToday.map(r=>`<tr>
+          <td class="lbl">${escHtml(r._k)}</td>
+          <td class="ctr">${escHtml(r.bno||'-')}</td>
+          <td class="ctr">${escHtml(r.rtype||'-')}</td>
+          <td class="r">${fmtN(r.rice)}</td>
+          <td class="r">${fmtN(r.water)}</td>
+          <td class="r">${fmtN(r.yeast)}</td>
+          <td class="r">${fmtN(r.fvol||r.vol||'')}</td>
+          <td class="r">${fmtN(r.filt||'')}</td>
+          <td>${escHtml(r.memo||'')}</td>
+        </tr>`).join('')
+        : `<tr><td colspan="9" class="ctr empty-row">당일 담금 데이터 없음<div class="empty-hint">좌측 메뉴에서 술덧/밑술 담금 데이터를 입력하세요</div></td></tr>`}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. 원료 및 원료수불상황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">4. 원료 및 원료수불상황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>원료명</th><th>단위</th>
+          <th>전일재고량</th><th>당일이입</th>
+          <th>사용(밀술)</th><th>사용(술덧)</th>
+          <th>합계사용</th><th>잔량고</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rawDetail.map(r=>`<tr>
+          <td class="lbl">${r.name}</td><td class="ctr">${r.unit}</td>
+          <td class="r">${fmtN(r.prev.toFixed(2))}</td>
+          <td class="r">${r.inc?fmtN(r.inc.toFixed(2)):'-'}</td>
+          <td class="r">${r.ms?fmtN(r.ms.toFixed(2)):'-'}</td>
+          <td class="r">${r.sd?fmtN(r.sd.toFixed(2)):'-'}</td>
+          <td class="r">${r.out?fmtN(r.out.toFixed(2)):'-'}</td>
+          <td class="bal">${fmtN(r.bal.toFixed(2))}</td>
+        </tr>`).join('')}
+        <tr class="total-row">
+          <td class="lbl" colspan="2">주류 재고 현황</td>
+          <td class="bal">${fmtN(liqPrev.toFixed(2))} ℓ</td>
+          <td class="r">${liqIn?fmtN(liqIn.toFixed(2))+' ℓ':'-'}</td>
+          <td colspan="2" class="ctr" style="color:var(--muted-lighter)">-</td>
+          <td class="r">${liqOut?fmtN(liqOut.toFixed(2))+' ℓ':'-'}</td>
+          <td class="bal">${fmtN(liqBal.toFixed(2))} ℓ</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. 용기·마개 현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">5. 용기·마개 현황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>구분</th><th>전일재고</th><th>당일입고</th>
+          <th>당일출고</th><th>파손폐기</th><th>잔량</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ctnrData.map(r=>`<tr>
+          <td class="lbl">${r.type}</td>
+          <td class="r">${fmtN(r.prev)}</td>
+          <td class="r">${r.inc?fmtN(r.inc):'-'}</td>
+          <td class="r">${r.out?fmtN(r.out):'-'}</td>
+          <td class="r">${r.broken?fmtN(r.broken):'-'}</td>
+          <td class="bal">${fmtN(r.bal)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    ${(DB.ctnr||[]).filter(r=>r.date===date).length ? `
+    <div style="margin-top:6px">
+      <table class="rpt-tbl">
+        <thead><tr><th>구분</th><th>입고</th><th>출고</th><th>파손</th><th>비고</th><th class="no-print">삭제</th></tr></thead>
+        <tbody>
+          ${(DB.ctnr||[]).filter(r=>r.date===date).map(r=>`<tr>
+            <td class="lbl">${r.type}</td>
+            <td class="r">${fmtN(r.inc)}</td><td class="r">${fmtN(r.out)}</td>
+            <td class="r">${fmtN(r.broken)}</td><td>${escHtml(r.memo||'')}</td>
+            <td class="no-print"><button class="btn-del" onclick="delCtnr(${r.id},'${date}')">삭제</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
+  </div>
+
+</div><!-- /rpt-paper -->
+</div><!-- /daily-content -->
+</div><!-- /daily-wrap -->
+`;
+  setTimeout(()=>{ formatAllNi(); applyGroupAriaLabels(); }, 10);
+}
+
+// ── 현황월보 ───────────────────────────────────────────
+function renderMonthlyReport(ymStr) {
+  const ym = ymStr || td().slice(0,7);
+  const [y, m] = ym.split('-').map(Number);
+  const startDate = `${y}-${String(m).padStart(2,'0')}-01`;
+  const nextStart = m===12
+    ? `${y+1}-01-01`
+    : `${y}-${String(m+1).padStart(2,'0')}-01`;
+  const co = (DB.settings && DB.settings.company) || '서울탁주';
+  const mats = ['평화미','백미','효모','곡자','아스파탐','구연산'];
+
+  // 원료
+  const matData = mats.map(name => {
+    const isRice = ['평화미','백미'].includes(name);
+    const prev = calcMatBal(name, startDate);
+    const rows = (DB.raw[name]||[]).filter(r=>r.date>=startDate&&r.date<nextStart);
+    let inc=0, ms=0, sd=0, u2=0, u3=0, u4=0;
+    rows.forEach(r=>{
+      inc+=(parseFloat(r.inc)||0);
+      if(isRice){ u2+=(parseFloat(r.u2)||0); u3+=(parseFloat(r.u3)||0); u4+=(parseFloat(r.u4)||0); }
+      else { ms+=(parseFloat(r.ms)||0); sd+=(parseFloat(r.sd)||0); }
+    });
+    const out = isRice ? u2+u3+u4 : ms+sd;
+    return { name, unit:_matUnits[name], prev, inc, ms:isRice?u2:ms, sd:isRice?u3+u4:sd, out, bal:prev+inc-out };
+  });
+
+  // 주류
+  const liqPrev = calcLiqBal(startDate);
+  const { inc:liqIn, out:liqOut } = calcLiqRange(startDate, nextStart);
+  const liqBal = liqPrev + liqIn - liqOut;
+
+  // 용기·마개
+  const ctnrData = ['용기','마개'].map(type => {
+    const prev = calcCtnrBal(type, startDate);
+    const { inc, out, broken } = calcCtnrRange(type, startDate, nextStart);
+    return { type, prev, inc, out, broken, bal:prev+inc-out-broken };
+  });
+
+  // 담금현황 (월별 일자 x 구분 그리드)
+  const mashMonthAll = [
+    ...(DB.mash||[]).filter(r=>r.date>=startDate&&r.date<nextStart).map(r=>({...r,_k:'술덧'})),
+    ...(DB.firstmash||[]).filter(r=>r.date>=startDate&&r.date<nextStart).map(r=>({...r,_k:'1차술덧'})),
+    ...(DB.baseliq||[]).filter(r=>r.date>=startDate&&r.date<nextStart).map(r=>({...r,_k:'밑술'})),
+  ];
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const mashByDay = {};
+  mashMonthAll.forEach(r => {
+    const dd = parseInt(r.date.split('-')[2]);
+    if (!mashByDay[dd]) mashByDay[dd] = [];
+    mashByDay[dd].push(r);
+  });
+
+  // 용수 월합계
+  const monthWater = mashMonthAll.reduce((a,r)=>a+(parseFloat(r.water)||0), 0);
+
+  document.getElementById('main').innerHTML = `
+<div class="rpt-ym-row no-print">
+  <label style="font-weight:600;color:var(--primary)">기준월</label>
+  <input type="month" id="monthly-ym" value="${ym}" onchange="renderMonthlyReport(this.value)" style="border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-family:inherit;font-size:13px">
+  <button class="btn btn-ghost" onclick="window.print()" style="margin-left:auto">🖨 인쇄</button>
+</div>
+
+<div class="rpt-paper">
+  <div class="rpt-header">
+    <div class="rpt-co">${co}</div>
+    <div class="rpt-title">주류 및 자재 현황월보</div>
+    <div class="rpt-date-stamp">${y}년 ${m}월 (${startDate} ~ ${y}-${String(m).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')})</div>
+  </div>
+
+  <!-- 1. 원료 사입현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">1. 주류사입현황 (원료 이입)</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th rowspan="2">품목</th><th rowspan="2">단위</th>
+          <th rowspan="2">전월이월</th><th rowspan="2">당월이입</th>
+          <th colspan="2">당월 사용수량</th>
+          <th rowspan="2">합계사용</th><th rowspan="2">월말잔량</th>
+        </tr>
+        <tr><th>밀술담금</th><th>술덧담금</th></tr>
+      </thead>
+      <tbody>
+        ${matData.map(r=>`<tr class="${(!r.inc&&!r.out)?'zero':''}">
+          <td class="lbl">${r.name}</td><td class="ctr">${r.unit}</td>
+          <td class="r">${fmtN(r.prev.toFixed(2))}</td>
+          <td class="r">${r.inc?fmtN(r.inc.toFixed(2)):'-'}</td>
+          <td class="r">${r.ms?fmtN(r.ms.toFixed(2)):'-'}</td>
+          <td class="r">${r.sd?fmtN(r.sd.toFixed(2)):'-'}</td>
+          <td class="r">${r.out?fmtN(r.out.toFixed(2)):'-'}</td>
+          <td class="bal">${fmtN(r.bal.toFixed(2))}</td>
+        </tr>`).join('')}
+        <tr>
+          <td class="lbl">용수 (물)</td><td class="ctr">L</td>
+          <td colspan="2" class="ctr" style="color:var(--muted-lighter)">-</td>
+          <td colspan="2" class="r">${monthWater?fmtN(monthWater.toFixed(1)):'-'}</td>
+          <td class="r">${monthWater?fmtN(monthWater.toFixed(1)):'-'}</td>
+          <td class="ctr" style="color:var(--muted-lighter)">-</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 2. 주류제성 및 출고현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">2. 주류제성 및 출고현황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>전월이월 (ℓ)</th><th>당월제성 (ℓ)</th><th>합계 (ℓ)</th>
+          <th>당월출고 (ℓ)</th><th>월말잔량 (ℓ)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="bal">${fmtN(liqPrev.toFixed(2))}</td>
+          <td class="r">${fmtN(liqIn.toFixed(2))}</td>
+          <td class="bal">${fmtN((liqPrev+liqIn).toFixed(2))}</td>
+          <td class="r">${fmtN(liqOut.toFixed(2))}</td>
+          <td class="bal">${fmtN(liqBal.toFixed(2))}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. 담금현황 (월별 그리드) -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">3. 주류담금현황 (${m}월)</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>일</th><th>구분</th><th>담금번호</th><th>원료종류</th>
+          <th>원료량(kg)</th><th>물(L)</th><th>효모(g)</th>
+          <th>담금량(L)</th><th>걸른량(L)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${Array.from({length:daysInMonth},(_,i)=>i+1).map(dd=>{
+          const list = mashByDay[dd]||[];
+          if (!list.length) return '';
+          return list.map((r,ri)=>`<tr>
+            ${ri===0?`<td class="ctr" rowspan="${list.length}" style="font-weight:700">${dd}</td>`:''}
+            <td class="lbl">${escHtml(r._k)}</td>
+            <td class="ctr">${escHtml(r.bno||'-')}</td>
+            <td class="ctr">${escHtml(r.rtype||'-')}</td>
+            <td class="r">${fmtN(r.rice)}</td>
+            <td class="r">${fmtN(r.water)}</td>
+            <td class="r">${fmtN(r.yeast)}</td>
+            <td class="r">${fmtN(r.fvol||r.vol||'')}</td>
+            <td class="r">${fmtN(r.filt||'')}</td>
+          </tr>`).join('');
+        }).join('')}
+        ${!mashMonthAll.length?`<tr><td colspan="9" class="ctr empty-row">당월 담금 데이터 없음<div class="empty-hint">주류제조부에서 담금 데이터를 입력하세요</div></td></tr>`:''}
+        <tr class="total-row">
+          <td colspan="4" class="lbl">합계</td>
+          <td class="r">${fmtN(mashMonthAll.reduce((a,r)=>a+(parseFloat(r.rice)||0),0).toFixed(2))}</td>
+          <td class="r">${fmtN(monthWater.toFixed(1))}</td>
+          <td class="r">${fmtN(mashMonthAll.reduce((a,r)=>a+(parseFloat(r.yeast)||0),0).toFixed(2))}</td>
+          <td class="r">${fmtN(mashMonthAll.reduce((a,r)=>a+(parseFloat(r.fvol||r.vol||0)),0).toFixed(2))}</td>
+          <td class="r">${fmtN(mashMonthAll.reduce((a,r)=>a+(parseFloat(r.filt||0)),0).toFixed(2))}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. 원료 및 원료수불상황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">4. 원료 및 원료수불상황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>원료명</th><th>단위</th>
+          <th>전월재고량</th><th>당월이입</th>
+          <th>사용(밀술)</th><th>사용(술덧)</th>
+          <th>합계사용</th><th>월말잔량</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${matData.map(r=>`<tr>
+          <td class="lbl">${r.name}</td><td class="ctr">${r.unit}</td>
+          <td class="r">${fmtN(r.prev.toFixed(2))}</td>
+          <td class="r">${r.inc?fmtN(r.inc.toFixed(2)):'-'}</td>
+          <td class="r">${r.ms?fmtN(r.ms.toFixed(2)):'-'}</td>
+          <td class="r">${r.sd?fmtN(r.sd.toFixed(2)):'-'}</td>
+          <td class="r">${r.out?fmtN(r.out.toFixed(2)):'-'}</td>
+          <td class="bal">${fmtN(r.bal.toFixed(2))}</td>
+        </tr>`).join('')}
+        <tr class="total-row">
+          <td class="lbl" colspan="2">주류 재고 현황</td>
+          <td class="bal">${fmtN(liqPrev.toFixed(2))} ℓ</td>
+          <td class="r">${liqIn?fmtN(liqIn.toFixed(2))+' ℓ':'-'}</td>
+          <td colspan="2" class="ctr" style="color:var(--muted-lighter)">-</td>
+          <td class="r">${liqOut?fmtN(liqOut.toFixed(2))+' ℓ':'-'}</td>
+          <td class="bal">${fmtN(liqBal.toFixed(2))} ℓ</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. 용기·마개 현황 -->
+  <div class="rpt-section">
+    <div class="rpt-section-hdr">5. 용기·마개 현황</div>
+    <table class="rpt-tbl">
+      <thead>
+        <tr>
+          <th>구분</th><th>전월재고</th><th>당월입고</th>
+          <th>당월출고</th><th>파손폐기</th><th>월말잔량</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ctnrData.map(r=>`<tr>
+          <td class="lbl">${r.type}</td>
+          <td class="r">${fmtN(r.prev)}</td>
+          <td class="r">${r.inc?fmtN(r.inc):'-'}</td>
+          <td class="r">${r.out?fmtN(r.out):'-'}</td>
+          <td class="r">${r.broken?fmtN(r.broken):'-'}</td>
+          <td class="bal">${fmtN(r.bal)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+</div>`;
+  setTimeout(()=>{ formatAllNi(); applyGroupAriaLabels(); }, 10);
+}
+
+// ── 주류현황 (구 요약화면) ──────────────────────────────
+function renderStatus() {
+  const units = { 평화미:'kg', 백미:'kg', 효모:'g', 곡자:'kg', 아스파탐:'g', 구연산:'g' };
+  const getBal = (m) => calcMatBal(m);
+  const liqBal = calcLiqBal();
+  const mats = ['평화미','백미','효모','곡자','아스파탐','구연산'];
+  document.getElementById('main').innerHTML = `
+<div class="panel-hdr"><div><h2 class="panel-title">주류 현황</h2><div class="panel-sub">전체 재고 현황 요약</div></div></div>
+<div class="stats-row">
+  ${mats.map(m=>`<div class="stat-card"><div class="stat-lbl">${m}</div><div class="stat-val">${fmtN(getBal(m).toFixed(2))}</div><div class="stat-unit">${units[m]}</div></div>`).join('')}
+  <div class="stat-card"><div class="stat-lbl">주류 재고</div><div class="stat-val">${fmtN(liqBal.toFixed(2))}</div><div class="stat-unit">L</div></div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">원료별 재고 현황</h3></div>
+  <div class="tbl-wrap">
+    <table class="led">
+      <thead><tr><th>품목</th><th>단위</th><th>전병이월</th><th>총 입고</th><th>총 사용</th><th>현재고</th></tr></thead>
+      <tbody>
+        ${mats.map(m=>{
+          const pFrom = DB.prevDate||'';
+          const rows=(DB.raw[m]||[]).filter(r=>!pFrom||r.date>=pFrom), prev=parseFloat(DB.prev[m])||0;
+          let ti=0, tu=0;
+          if (['평화미','백미'].includes(m)) rows.forEach(r=>{ ti+=(parseFloat(r.inc)||0); tu+=(parseFloat(r.u2)||0)+(parseFloat(r.u3)||0)+(parseFloat(r.u4)||0); });
+          else rows.forEach(r=>{ ti+=(parseFloat(r.inc)||0); tu+=(parseFloat(r.ms)||0)+(parseFloat(r.sd)||0); });
+          return `<tr><td style="font-weight:600">${m}</td><td>${units[m]}</td><td class="r">${fmtN(prev)}</td><td class="r">${fmtN(ti)}</td><td class="r">${fmtN(tu)}</td><td class="bal">${fmtN((prev+ti-tu).toFixed(2))}</td></tr>`;
+        }).join('')}
+        <tr><td style="font-weight:600">주류</td><td>L</td><td class="r">${fmtN(DB.prev['주류'])}</td>
+        <td class="r">${fmtN((DB.liquor||[]).filter(r=>!DB.prevDate||r.date>=DB.prevDate).reduce((a,r)=>a+(parseFloat(r.inc)||0),0))}</td>
+        <td class="r">${fmtN((DB.liquor||[]).filter(r=>!DB.prevDate||r.date>=DB.prevDate).reduce((a,r)=>a+(parseFloat(r.out)||0),0))}</td>
+        <td class="bal">${fmtN(liqBal.toFixed(2))}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── 재고현황 ───────────────────────────────────────────
+let _invSel  = null;   // 선택된 품목 key
+let _invFrom = '';
+let _invTo   = '';
+
+const _invUnits = { 평화미:'kg', 백미:'kg', 효모:'g', 곡자:'kg', 아스파탐:'g', 구연산:'g', 주류:'L', 용기:'개', 마개:'개' };
+const _invMats  = ['평화미','백미','효모','곡자','아스파탐','구연산'];
+const _invAll   = [..._invMats, '주류','용기','마개'];
+
+function _invSummary() {
+  const pFrom = DB.prevDate || '';
+  const today = td();
+  return _invAll.map(key => {
+    let prev=0, inc=0, out=0, bal=0;
+    if (_invMats.includes(key)) {
+      prev = parseFloat(DB.prev[key])||0;
+      const rows = (DB.raw[key]||[]).filter(r=>!pFrom||r.date>=pFrom);
+      if (['평화미','백미'].includes(key))
+        rows.forEach(r=>{ inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.u2)||0)+(parseFloat(r.u3)||0)+(parseFloat(r.u4)||0); });
+      else
+        rows.forEach(r=>{ inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.ms)||0)+(parseFloat(r.sd)||0); });
+      bal = prev+inc-out;
+    } else if (key==='주류') {
+      prev = parseFloat(DB.prev['주류'])||0;
+      (DB.liquor||[]).filter(r=>!pFrom||r.date>=pFrom).forEach(r=>{ inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.out)||0); });
+      bal = prev+inc-out;
+    } else {
+      prev = parseFloat((DB.prevCtnr||{})[key])||0;
+      let broken=0;
+      (DB.ctnr||[]).filter(r=>r.type===key&&(!pFrom||r.date>=pFrom)).forEach(r=>{ inc+=(parseFloat(r.inc)||0); out+=(parseFloat(r.out)||0); broken+=(parseFloat(r.broken)||0); });
+      bal = prev+inc-out-broken;
+    }
+    return { key, unit:_invUnits[key], prev, inc, out, bal };
+  });
+}
+
+function renderInventory() {
+  const pFrom = DB.prevDate || '';
+  const today = td();
+  if (!_invSel) _invSel = _invAll[0];
+  if (!_invFrom) _invFrom = pFrom || today.slice(0,7)+'-01';
+  if (!_invTo)   _invTo   = today;
+
+  const summary = _invSummary();
+  const prevDateStr = pFrom ? `기초재고 기준일: ${pFrom}` : '기초재고 기준일 미설정';
+
+  document.getElementById('main').innerHTML = `
+<div class="panel-hdr">
+  <div>
+    <h2 class="panel-title">재고현황</h2>
+    <div class="panel-sub">${prevDateStr} · 조회일: ${today}</div>
+  </div>
+</div>
+
+<!-- ① 클릭 가능한 요약 카드 -->
+<div class="inv-card-grid">
+  ${summary.map(s=>`
+  <div class="inv-sum-card${_invSel===s.key?' inv-sum-card-sel':''}" onclick="invSelect('${s.key}')">
+    <div class="inv-sum-lbl">${s.key}</div>
+    <div class="inv-sum-val">${fmtN(s.bal.toFixed(['kg','L'].includes(s.unit)?2:0))}</div>
+    <div class="inv-sum-unit">${s.unit}</div>
+    <div class="inv-sum-sub">입고 ${fmtN(s.inc.toFixed(['kg','L'].includes(s.unit)?2:0))} / 출고 ${fmtN(s.out.toFixed(['kg','L'].includes(s.unit)?2:0))}</div>
+  </div>`).join('')}
+</div>
+
+<!-- ② 검색 필터 -->
+<div class="card" style="margin-top:16px">
+  <div class="card-hdr" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <h3 class="card-title" id="inv-detail-title">${_invSel} 재고 변동 이력</h3>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+      <label style="font-size:11px;color:var(--muted);font-weight:700">기간</label>
+      <input type="date" id="inv-from" value="${_invFrom}"
+        style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none"
+        onchange="_invFrom=this.value;invRenderDetail()">
+      <span style="color:var(--muted);font-size:12px">~</span>
+      <input type="date" id="inv-to" value="${_invTo}"
+        style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none"
+        onchange="_invTo=this.value;invRenderDetail()">
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 12px" onclick="invResetDate()">전체</button>
+    </div>
+  </div>
+  <div class="tbl-wrap" id="inv-detail-body">
+    <!-- 동적 렌더 -->
+  </div>
+</div>`;
+
+  invRenderDetail();
+}
+
+function invSelect(key) {
+  _invSel = key;
+  // 카드 하이라이트 갱신
+  document.querySelectorAll('.inv-sum-card').forEach(el=>{
+    el.classList.toggle('inv-sum-card-sel', el.querySelector('.inv-sum-lbl').textContent===key);
+  });
+  document.getElementById('inv-detail-title').textContent = key + ' 재고 변동 이력';
+  invRenderDetail();
+}
+
+function invResetDate() {
+  const pFrom = DB.prevDate||'';
+  _invFrom = pFrom || td().slice(0,7)+'-01';
+  _invTo   = td();
+  const fi=document.getElementById('inv-from'); if(fi) fi.value=_invFrom;
+  const ti=document.getElementById('inv-to');   if(ti) ti.value=_invTo;
+  invRenderDetail();
+}
+
+function invRenderDetail() {
+  const key   = _invSel;
+  const from  = _invFrom;
+  const to    = _invTo;
+  const pFrom = DB.prevDate||'';
+  const unit  = _invUnits[key];
+  const dec   = ['kg','L'].includes(unit) ? 2 : 0;
+  const f     = v => fmtN(parseFloat(v||0).toFixed(dec));
+
+  let html = '';
+
+  if (_invMats.includes(key)) {
+    const isRice = ['평화미','백미'].includes(key);
+    // 기초잔량 = prevDate 이후 ~ from 이전까지 누적
+    let runBal = parseFloat(DB.prev[key])||0;
+    (DB.raw[key]||[]).filter(r=>(!pFrom||r.date>=pFrom)&&r.date<from).forEach(r=>{
+      runBal += (parseFloat(r.inc)||0);
+      if (isRice) runBal -= (parseFloat(r.u2)||0)+(parseFloat(r.u3)||0)+(parseFloat(r.u4)||0);
+      else runBal -= (parseFloat(r.ms)||0)+(parseFloat(r.sd)||0);
+    });
+
+    const rows = (DB.raw[key]||[]).filter(r=>r.date>=from&&r.date<=to).sort((a,b)=>a.date<b.date?-1:1);
+
+    if (isRice) {
+      html = `<table class="led">
+        <thead><tr>
+          <th>날짜</th><th>입고 (${unit})</th>
+          <th>2차담금</th><th>3차담금</th><th>4차담금</th>
+          <th>잔량 (${unit})</th>
+        </tr></thead>
+        <tbody>
+        <tr style="background:var(--carry-row)">
+          <td style="color:var(--muted);font-size:11px">${from} 이전 잔량</td>
+          <td colspan="4"></td>
+          <td class="bal">${f(runBal)}</td>
+        </tr>
+        ${rows.length?rows.map(r=>{
+          const inc=parseFloat(r.inc)||0, u2=parseFloat(r.u2)||0, u3=parseFloat(r.u3)||0, u4=parseFloat(r.u4)||0;
+          runBal += inc-u2-u3-u4;
+          return `<tr>
+            <td>${r.date}</td>
+            <td class="r">${inc?f(inc):'-'}</td>
+            <td class="r">${u2?f(u2):'-'}</td>
+            <td class="r">${u3?f(u3):'-'}</td>
+            <td class="r">${u4?f(u4):'-'}</td>
+            <td class="bal">${f(runBal)}</td>
+          </tr>`;
+        }).join(''):`<tr><td colspan="6" class="empty-row">해당 기간 데이터 없음<div class="empty-hint">날짜 범위를 조정하거나 데이터를 입력하세요</div></td></tr>`}
+        </tbody></table>`;
+    } else {
+      html = `<table class="led">
+        <thead><tr>
+          <th>날짜</th><th>입고 (${unit})</th>
+          <th>밑술 사용</th><th>술덧 사용</th>
+          <th>잔량 (${unit})</th>
+        </tr></thead>
+        <tbody>
+        <tr style="background:var(--carry-row)">
+          <td style="color:var(--muted);font-size:11px">${from} 이전 잔량</td>
+          <td colspan="3"></td>
+          <td class="bal">${f(runBal)}</td>
+        </tr>
+        ${rows.length?rows.map(r=>{
+          const inc=parseFloat(r.inc)||0, ms=parseFloat(r.ms)||0, sd=parseFloat(r.sd)||0;
+          runBal += inc-ms-sd;
+          if (r.mbal!==undefined&&r.mbal!=='') runBal=parseFloat(r.mbal)||runBal;
+          return `<tr>
+            <td>${r.date}</td>
+            <td class="r">${inc?f(inc):'-'}</td>
+            <td class="r">${ms?f(ms):'-'}</td>
+            <td class="r">${sd?f(sd):'-'}</td>
+            <td class="bal">${f(runBal)}</td>
+          </tr>`;
+        }).join(''):`<tr><td colspan="5" class="empty-row">해당 기간 데이터 없음<div class="empty-hint">날짜 범위를 조정하거나 데이터를 입력하세요</div></td></tr>`}
+        </tbody></table>`;
+    }
+
+  } else if (key==='주류') {
+    let runBal = parseFloat(DB.prev['주류'])||0;
+    (DB.liquor||[]).filter(r=>(!pFrom||r.date>=pFrom)&&r.date<from).forEach(r=>{
+      runBal += (parseFloat(r.inc)||0)-(parseFloat(r.out)||0);
+    });
+    const rows = (DB.liquor||[]).filter(r=>r.date>=from&&r.date<=to).sort((a,b)=>a.date<b.date?-1:1);
+    html = `<table class="led">
+      <thead><tr>
+        <th>날짜</th><th>담금순호</th><th>제성량 (L)</th><th>출고량 (L)</th>
+        <th>배달자</th><th>출고처</th><th>잔량 (L)</th>
+      </tr></thead>
+      <tbody>
+      <tr style="background:var(--carry-row)">
+        <td style="color:var(--muted);font-size:11px">${from} 이전 잔량</td>
+        <td colspan="5"></td>
+        <td class="bal">${f(runBal)}</td>
+      </tr>
+      ${rows.length?rows.map(r=>{
+        const inc=parseFloat(r.inc)||0, out=parseFloat(r.out)||0;
+        runBal += inc-out;
+        const bno = [r.bno_b, r.bno_a].filter(Boolean).map(v=>escHtml(v)).join('→') || '-';
+        return `<tr>
+          <td>${r.date}</td>
+          <td>${bno}</td>
+          <td class="r">${inc?f(inc):'-'}</td>
+          <td class="r">${out?f(out):'-'}</td>
+          <td>${escHtml(r.driver||'-')}</td>
+          <td>${escHtml(r.dest||'-')}</td>
+          <td class="bal">${f(runBal)}</td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="7" class="empty-row">해당 기간 데이터 없음<div class="empty-hint">날짜 범위를 조정하거나 데이터를 입력하세요</div></td></tr>`}
+      </tbody></table>`;
+
+  } else {
+    // 용기 / 마개
+    let runBal = parseFloat((DB.prevCtnr||{})[key])||0;
+    (DB.ctnr||[]).filter(r=>r.type===key&&(!pFrom||r.date>=pFrom)&&r.date<from).forEach(r=>{
+      runBal += (parseFloat(r.inc)||0)-(parseFloat(r.out)||0)-(parseFloat(r.broken)||0);
+    });
+    const rows = (DB.ctnr||[]).filter(r=>r.type===key&&r.date>=from&&r.date<=to).sort((a,b)=>a.date<b.date?-1:1);
+    html = `<table class="led">
+      <thead><tr>
+        <th>날짜</th><th>입고 (개)</th><th>출고 (개)</th><th>파손·폐기 (개)</th><th>비고</th><th>잔량 (개)</th>
+      </tr></thead>
+      <tbody>
+      <tr style="background:var(--carry-row)">
+        <td style="color:var(--muted);font-size:11px">${from} 이전 잔량</td>
+        <td colspan="4"></td>
+        <td class="bal">${fmtN(runBal)}</td>
+      </tr>
+      ${rows.length?rows.map(r=>{
+        const inc=parseFloat(r.inc)||0, out=parseFloat(r.out)||0, broken=parseFloat(r.broken)||0;
+        runBal += inc-out-broken;
+        return `<tr>
+          <td>${r.date}</td>
+          <td class="r">${inc?fmtN(inc):'-'}</td>
+          <td class="r">${out?fmtN(out):'-'}</td>
+          <td class="r">${broken?fmtN(broken):'-'}</td>
+          <td>${escHtml(r.memo||'-')}</td>
+          <td class="bal">${fmtN(runBal)}</td>
+        </tr>`;
+      }).join(''):`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">해당 기간 데이터 없음</td></tr>`}
+      </tbody></table>`;
+  }
+
+  const body = document.getElementById('inv-detail-body');
+  if (body) body.innerHTML = html;
+}
+
+// ── 설정 ───────────────────────────────────────────────
+function renderSettings() {
+  const s=DB.settings, p=DB.prev;
+  document.getElementById('main').innerHTML = `
+<div class="panel-hdr"><div><h2 class="panel-title">설 정</h2></div></div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">업체 정보</h3></div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="fg"><label>업체명</label><input type="text" id="s-co" value="${escHtml(s.company||'')}"></div>
+      <div class="fg"><label>사업자번호</label><input type="text" id="s-bn" value="${escHtml(s.bizno||'')}"></div>
+      <div class="fg"><label>주소</label><input type="text" id="s-addr" value="${escHtml(s.addr||'')}"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">저장</button>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">전병이월 (기초 재고)</h3></div>
+  <div class="card-body">
+    <div class="form-grid" style="margin-bottom:18px">
+      <div class="fg" style="grid-column:1/-1;max-width:260px">
+        <label>기초재고 기준일자</label>
+        <input type="date" id="p-prevDate" value="${DB.prevDate||''}">
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>평화미 (kg)</label><input type="text" inputmode="decimal" class="ni" id="p-평화미" value="${fmtN(p['평화미']||0)}"></div>
+      <div class="fg"><label>백미 (kg)</label><input type="text" inputmode="decimal" class="ni" id="p-백미" value="${fmtN(p['백미']||0)}"></div>
+      <div class="fg"><label>효모 (g)</label><input type="text" inputmode="decimal" class="ni" id="p-효모" value="${fmtN(p['효모']||0)}"></div>
+      <div class="fg"><label>곡자 (kg)</label><input type="text" inputmode="decimal" class="ni" id="p-곡자" value="${fmtN(p['곡자']||0)}"></div>
+      <div class="fg"><label>아스파탐 (g)</label><input type="text" inputmode="decimal" class="ni" id="p-아스파탐" value="${fmtN(p['아스파탐']||0)}"></div>
+      <div class="fg"><label>구연산 (g)</label><input type="text" inputmode="decimal" class="ni" id="p-구연산" value="${fmtN(p['구연산']||0)}"></div>
+      <div class="fg"><label>입국 (kg)</label><input type="text" inputmode="decimal" class="ni" id="p-입국" value="${fmtN(p['입국']||0)}"></div>
+      <div class="fg"><label>주류 (L)</label><input type="text" inputmode="decimal" class="ni" id="p-주류" value="${fmtN(p['주류']||0)}"></div>
+    </div>
+    <hr class="divider">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">용기·마개 기초 재고</div>
+    <div class="form-grid">
+      <div class="fg"><label>용기 (개)</label><input type="text" inputmode="decimal" class="ni" id="p-용기" value="${fmtN((DB.prevCtnr||{})['용기']||0)}"></div>
+      <div class="fg"><label>마개 (개)</label><input type="text" inputmode="decimal" class="ni" id="p-마개" value="${fmtN((DB.prevCtnr||{})['마개']||0)}"></div>
+    </div>
+    <button class="btn btn-primary" onclick="savePrev()">저장</button>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr"><h3 class="card-title">사용자 관리 (담당자)</h3></div>
+  <div class="card-body">
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg" style="flex:1;min-width:120px"><label>이름</label><input type="text" id="u-name" placeholder="담당자 이름" autocomplete="off"></div>
+      <div class="fg" style="flex:1;min-width:120px"><label>직책/역할</label><input type="text" id="u-role" placeholder="예: 제조부장, 담당자"></div>
+      <button class="btn btn-primary" style="flex-shrink:0" onclick="addUser()">등록</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="led">
+        <thead><tr><th style="width:40px">번호</th><th>이름</th><th>직책/역할</th><th style="width:100px" class="no-print">관리</th></tr></thead>
+        <tbody id="user-tbody">
+          ${(DB.users||[]).length === 0
+            ? `<tr><td colspan="4" class="empty-row">등록된 담당자가 없습니다<div class="empty-hint">위에서 이름과 직책을 입력하여 담당자를 등록하세요</div></td></tr>`
+            : (DB.users||[]).map((u,i)=>`<tr>
+                <td>${i+1}</td>
+                <td style="font-weight:600">${escHtml(u.name)}</td>
+                <td style="color:var(--muted)">${escHtml(u.role||'')}</td>
+                <td class="no-print">
+                  <button class="btn-edit" onclick="editUser(${u.id})">수정</button>
+                  <button class="btn-del" onclick="delUser(${u.id})">삭제</button>
+                </td>
+              </tr>`).join('')
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-hdr" style="background:var(--danger-bg)"><h3 class="card-title" style="color:var(--danger)">데이터 관리</h3></div>
+  <div class="card-body">
+    <div class="btn-row" style="flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="exportDB()">데이터 내보내기 (JSON)</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('imp').click()">데이터 가져오기</button>
+      <input type="file" id="imp" accept=".json" style="display:none" onchange="importDB(event)">
+      <button class="btn" style="background:var(--danger);color:#fff" onclick="if(confirm('모든 데이터를 초기화합니다. 계속할까요?'))resetDB()">전체 초기화</button>
+    </div>
+  </div>
+</div>`;
+  setTimeout(()=>{ formatAllNi(); applyGroupAriaLabels(); }, 10);
+}
+
+// ── ADD ROWS ───────────────────────────────────────────
+function addSimple(m) {
+  DB.raw[m].push({ id:nid(DB.raw[m]), date:g('f-date'), person:g('f-person'), type:g('f-type'), inc:g('f-inc'), src:g('f-src'), ms:g('f-ms'), sd:g('f-sd'), red:g('f-red'), mbal:g('f-mbal'), memo:g('f-memo') });
+  save(); render(); announce('데이터가 추가되었습니다');
+}
+function addRice(m) {
+  DB.raw[m].push({ id:nid(DB.raw[m]), date:g('f-date'), person:g('f-person'), inc:g('f-inc'), price:g('f-price'), src:g('f-src'), s2a:g('f-s2a'), s2b:g('f-s2b'), u2:g('f-u2'), s3a:g('f-s3a'), s3b:g('f-s3b'), u3:g('f-u3'), s4a:g('f-s4a'), s4b:g('f-s4b'), u4:g('f-u4'), memo:g('f-memo') });
+  save(); render(); announce('데이터가 추가되었습니다');
+}
+function addKoji() {
+  DB.koji.push({ id:nid(DB.koji), date:g('f-date'), person:g('f-person'),
+    ms_cnt:g('f-ms-cnt'), sd_cnt:g('f-sd-cnt'),
+    ms_raw:g('f-ms-raw'), sd_raw:g('f-sd-raw'),
+    ms_b:g('f-ms-b'), ms_a:g('f-ms-a'),
+    sd_b:g('f-sd-b'), sd_a:g('f-sd-a') });
+  save(); render(); announce('입국 데이터가 추가되었습니다');
+}
+function addMash() {
+  DB.mash.push({ id:nid(DB.mash), date:g('f-date'), bno:g('f-bno'), rtype:g('f-rtype'), rice:g('f-rice'), water:g('f-water'), yeast:g('f-yeast'), koji:g('f-koji'), fvol:g('f-fvol'), fdate:g('f-fdate'), filt:g('f-filt'), alc:g('f-alc'), acid:g('f-acid'), memo:g('f-memo') });
+  save(); render(); announce('술덧 데이터가 추가되었습니다');
+}
+function addLees() {
+  DB.lees.push({ id:nid(DB.lees), date:g('f-date'), person:g('f-person'), inc:g('f-inc'), method:g('f-method'), out:g('f-out'), memo:g('f-memo') });
+  save(); render(); announce('술지거미 데이터가 추가되었습니다');
+}
+function addFirstMash() {
+  DB.firstmash.push({ id:nid(DB.firstmash),
+    date:g('f-date'),
+    bno_b:g('f-bno-b'), bno_a:g('f-bno-a'),
+    ctnr_no:g('f-ctnr-no'),
+    inc_depth:g('f-inc-depth'), inc_vol:g('f-inc-vol'),
+    chk_date:g('f-chk-date'), chk_depth:g('f-chk-depth'), chk_vol:g('f-chk-vol'),
+    bno2_b:g('f-bno2-b'), bno2_a:g('f-bno2-a')
+  });
+  save(); render(); announce('1차 술덧 데이터가 추가되었습니다');
+}
+function addBaseLiq() {
+  DB.baseliq.push({ id:nid(DB.baseliq),
+    insp_date:g('f-insp-date'), insp_person:g('f-insp-person'),
+    symbol:g('f-symbol'),
+    bno_b:g('f-bno-b'), bno_a:g('f-bno-a'),
+    ctnr_no:g('f-ctnr-no'),
+    inc_date:g('f-inc-date'), inc_depth:g('f-inc-depth'), inc_vol:g('f-inc-vol'),
+    chk_date:g('f-chk-date'), chk_depth:g('f-chk-depth'), chk_vol:g('f-chk-vol'), chk_rate:g('f-chk-rate'),
+    mash_bno_b:g('f-mash-bno-b'), mash_bno_a:g('f-mash-bno-a')
+  });
+  save(); render(); announce('밑술 데이터가 추가되었습니다');
+}
+function addLiquor() {
+  DB.liquor.push({ id:nid(DB.liquor), date:g('f-date'), person:g('f-person'),
+    bno_b:g('f-bno-b'), bno_a:g('f-bno-a'), inc:g('f-inc'),
+    out:g('f-out'), price:g('f-price'), driver:g('f-driver'), dest:g('f-dest'),
+    remain:g('f-remain'), loss:g('f-loss'), loss_rate:g('f-loss-rate'), memo:g('f-memo') });
+  save(); render(); announce('주류 데이터가 추가되었습니다');
+}
+
+// ── QUICK ENTRY (현황일보 좌측 패널) ───────────────────
+function toggleQE(id) {
+  const body  = document.getElementById(id);
+  const arrow = document.getElementById(id+'-arrow');
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
+
+function quickAddLiquor(date) {
+  const inc  = g('qe-inc');
+  const out  = g('qe-out');
+  if (!inc && !out) { alert('제성량 또는 출고량을 입력하세요.'); return; }
+  DB.liquor.push({
+    id:     nid(DB.liquor),
+    date,
+    person: g('qe-person'),
+    type:   (document.getElementById('qe-type')||{}).value || '',
+    inc,
+    out,
+    dest:   (document.getElementById('qe-dest')||{}).value || '',
+    memo:   (document.getElementById('qe-memo')||{}).value || ''
+  });
+  save();
+  renderDailyReport(date);
+  announce('주류 데이터가 추가되었습니다');
+}
+
+// ── CONTAINER SAVE/DEL ─────────────────────────────────
+function saveCtnr(date) {
+  const type  = document.getElementById('ctnr-type').value;
+  const inc   = g('ctnr-inc');
+  const out   = g('ctnr-out');
+  const broken= g('ctnr-broken');
+  const memo  = (document.getElementById('ctnr-memo')||{}).value||'';
+  if (!inc && !out && !broken) { alert('입고/출고/파손 중 하나를 입력하세요.'); return; }
+  if (!DB.ctnr) DB.ctnr = [];
+  DB.ctnr.push({ id: DB.ctnr.length ? Math.max(...DB.ctnr.map(r=>r.id))+1 : 1, date, type, inc, out, broken, memo });
+  save();
+  renderDailyReport(date);
+  announce('용기·마개 데이터가 저장되었습니다');
+}
+function delCtnr(id, date) {
+  if (!confirm('삭제할까요?')) return;
+  DB.ctnr = (DB.ctnr||[]).filter(r=>r.id!==id);
+  save();
+  renderDailyReport(date);
+  announce('삭제되었습니다');
+}
+
+// ── DELETE ROWS ────────────────────────────────────────
+function delSimple(m,id){ if(!confirm('삭제할까요?'))return; DB.raw[m]=DB.raw[m].filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delRice(m,id){ if(!confirm('삭제할까요?'))return; DB.raw[m]=DB.raw[m].filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delKoji(id){ if(!confirm('삭제할까요?'))return; DB.koji=DB.koji.filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delMash(id){ if(!confirm('삭제할까요?'))return; DB.mash=DB.mash.filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delLees(id){ if(!confirm('삭제할까요?'))return; DB.lees=DB.lees.filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delFirstMash(id){ if(!confirm('삭제할까요?'))return; DB.firstmash=DB.firstmash.filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delBaseLiq(id){ if(!confirm('삭제할까요?'))return; DB.baseliq=DB.baseliq.filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+function delLiquor(id){ if(!confirm('삭제할까요?'))return; DB.liquor=DB.liquor.filter(r=>r.id!==id); save(); render(); announce('삭제되었습니다'); }
+
+// ── EDIT MODAL ─────────────────────────────────────────
+let _eType='', _eSub='', _eId=null;
+
+function openEdit(type, sub, id) {
+  _eType=type; _eSub=sub; _eId=id;
+  let title='', body='', r;
+
+  if (type==='simple') {
+    r=(DB.raw[sub]||[]).find(x=>x.id===id); if(!r) return;
+    const u=simpleUnit[sub]||'g';
+    title=simpleTitle[sub]+' 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>월일</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      ${pFieldVal('e-person',r.person||'')}
+      <div class="fg"><label>종별</label><input type="text" id="e-type" value="${escHtml(r.type||'')}"></div>
+      <div class="fg"><label>수입수량 (${u})</label><input type="text" inputmode="decimal" class="ni" id="e-inc" value="${r.inc||''}"></div>
+      <div class="fg"><label>구입처</label><input type="text" id="e-src" value="${escHtml(r.src||'')}"></div>
+      <div class="fg"><label>사용-밀술 (${u})</label><input type="text" inputmode="decimal" class="ni" id="e-ms" value="${r.ms||''}"></div>
+      <div class="fg"><label>사용-술덧 (${u})</label><input type="text" inputmode="decimal" class="ni" id="e-sd" value="${r.sd||''}"></div>
+      <div class="fg"><label>결감수량</label><input type="text" inputmode="decimal" class="ni" id="e-red" value="${r.red||''}"></div>
+      <div class="fg"><label>현재수량 직접입력 <span style="font-weight:400;color:var(--muted-light)">(선택)</span></label><input type="text" inputmode="decimal" class="ni" id="e-mbal" value="${r.mbal||''}"></div>
+      <div class="fg"><label>적요</label><input type="text" id="e-memo" value="${escHtml(r.memo||'')}"></div>
+    </div>`;
+  } else if (type==='rice') {
+    r=(DB.raw[sub]||[]).find(x=>x.id===id); if(!r) return;
+    title='원료 수불 ('+sub+') 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>월일</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      ${pFieldVal('e-person',r.person||'')}
+      <div class="fg"><label>수입수량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="e-inc" value="${r.inc||''}"></div>
+      <div class="fg"><label>가격 (원)</label><input type="text" inputmode="decimal" class="ni" id="e-price" value="${r.price||''}"></div>
+      <div class="fg"><label>거래선</label><input type="text" id="e-src" value="${escHtml(r.src||'')}"></div>
+    </div>
+    <hr class="divider">
+    <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:10px;letter-spacing:.4px;text-transform:uppercase">사 용 수 량</div>
+    <div class="form-grid">
+      <div class="fg-group">
+        <span class="fg-group-lbl">2차 담금</span>
+        <div class="fg-group-body">
+          <div><span>순호①</span><input type="text" id="e-s2a" value="${escHtml(r.s2a||r.s2||'')}"></div>
+          <div><span>순호②</span><input type="text" id="e-s2b" value="${escHtml(r.s2b||'')}"></div>
+          <div><span>수량 (kg)</span><input type="text" inputmode="decimal" class="ni" id="e-u2" value="${r.u2||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">3차 담금</span>
+        <div class="fg-group-body">
+          <div><span>순호①</span><input type="text" id="e-s3a" value="${escHtml(r.s3a||r.s3||'')}"></div>
+          <div><span>순호②</span><input type="text" id="e-s3b" value="${escHtml(r.s3b||'')}"></div>
+          <div><span>수량 (kg)</span><input type="text" inputmode="decimal" class="ni" id="e-u3" value="${r.u3||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">4차 담금</span>
+        <div class="fg-group-body">
+          <div><span>순호①</span><input type="text" id="e-s4a" value="${escHtml(r.s4a||r.s4||'')}"></div>
+          <div><span>순호②</span><input type="text" id="e-s4b" value="${escHtml(r.s4b||'')}"></div>
+          <div><span>수량 (kg)</span><input type="text" inputmode="decimal" class="ni" id="e-u4" value="${r.u4||''}"></div>
+        </div>
+      </div>
+      <div class="fg"><label>비고</label><input type="text" id="e-memo" value="${escHtml(r.memo||'')}"></div>
+    </div>`;
+  } else if (type==='koji') {
+    r=DB.koji.find(x=>x.id===id); if(!r) return;
+    title='입국 수불 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>검사 월일</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      ${pFieldVal('e-person',r.person||'')}
+      <div class="fg-group">
+        <span class="fg-group-lbl">담금예정개수</span>
+        <div class="fg-group-body">
+          <div><span>밑술 (개)</span><input type="text" inputmode="decimal" class="ni" id="e-ms-cnt" value="${r.ms_cnt||''}"></div>
+          <div><span>술덧 (개)</span><input type="text" inputmode="decimal" class="ni" id="e-sd-cnt" value="${r.sd_cnt||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">원료수량 (kg)</span>
+        <div class="fg-group-body">
+          <div><span>밑술</span><input type="text" inputmode="decimal" class="ni" id="e-ms-raw" value="${r.ms_raw||''}"></div>
+          <div><span>술덧</span><input type="text" inputmode="decimal" class="ni" id="e-sd-raw" value="${r.sd_raw||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">담금용기순호 — 밑술</span>
+        <div class="fg-group-body">
+          <div><span>작업전</span><input type="text" id="e-ms-b" value="${escHtml(r.ms_b||'')}"></div>
+          <div><span>작업후</span><input type="text" id="e-ms-a" value="${escHtml(r.ms_a||'')}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">담금용기순호 — 술덧</span>
+        <div class="fg-group-body">
+          <div><span>작업전</span><input type="text" id="e-sd-b" value="${escHtml(r.sd_b||'')}"></div>
+          <div><span>작업후</span><input type="text" id="e-sd-a" value="${escHtml(r.sd_a||'')}"></div>
+        </div>
+      </div>
+    </div>`;
+  } else if (type==='mash') {
+    r=DB.mash.find(x=>x.id===id); if(!r) return;
+    title='술덧담금 및 걸름 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>담금 일자</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      <div class="fg"><label>담금 번호</label><input type="text" id="e-bno" value="${escHtml(r.bno||'')}"></div>
+      <div class="fg"><label>원료 종류</label><input type="text" id="e-rtype" value="${escHtml(r.rtype||'')}"></div>
+      <div class="fg"><label>쌀 사용량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="e-rice" value="${r.rice||''}"></div>
+      <div class="fg"><label>물 (L)</label><input type="text" inputmode="decimal" class="ni" id="e-water" value="${r.water||''}"></div>
+      <div class="fg"><label>효모 (g)</label><input type="text" inputmode="decimal" class="ni" id="e-yeast" value="${r.yeast||''}"></div>
+      <div class="fg"><label>곡자 (kg)</label><input type="text" inputmode="decimal" class="ni" id="e-koji" value="${r.koji||''}"></div>
+      <div class="fg"><label>담금량 (L)</label><input type="text" inputmode="decimal" class="ni" id="e-fvol" value="${r.fvol||''}"></div>
+      <div class="fg"><label>걸름 일자</label><input type="date" id="e-fdate" value="${r.fdate||''}"></div>
+      <div class="fg"><label>걸른량 (L)</label><input type="text" inputmode="decimal" class="ni" id="e-filt" value="${r.filt||''}"></div>
+      <div class="fg"><label>주정분 (%)</label><input type="text" inputmode="decimal" class="ni" id="e-alc" value="${r.alc||''}"></div>
+      <div class="fg"><label>산도</label><input type="text" inputmode="decimal" class="ni" id="e-acid" value="${r.acid||''}"></div>
+      <div class="fg"><label>비고</label><input type="text" id="e-memo" value="${escHtml(r.memo||'')}"></div>
+    </div>`;
+  } else if (type==='lees') {
+    r=DB.lees.find(x=>x.id===id); if(!r) return;
+    title='술지거미 수불 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>월일</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      ${pFieldVal('e-person',r.person||'')}
+      <div class="fg"><label>발생량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="e-inc" value="${r.inc||''}"></div>
+      <div class="fg"><label>처리방법</label><input type="text" id="e-method" value="${escHtml(r.method||'')}"></div>
+      <div class="fg"><label>처리량 (kg)</label><input type="text" inputmode="decimal" class="ni" id="e-out" value="${r.out||''}"></div>
+      <div class="fg"><label>비고</label><input type="text" id="e-memo" value="${escHtml(r.memo||'')}"></div>
+    </div>`;
+  } else if (type==='firstmash') {
+    r=DB.firstmash.find(x=>x.id===id); if(!r) return;
+    title='1차 술덧 담금 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>1차 담금 일자</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      <div class="fg-group">
+        <div class="fg-group-lbl">담금 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="e-bno-b" value="${escHtml(r.bno_b||'')}"></div>
+          <div><span>시작 후</span><input type="text" id="e-bno-a" value="${escHtml(r.bno_a||'')}"></div>
+        </div>
+      </div>
+      <div class="fg"><label>용기 번호</label><input type="text" id="e-ctnr-no" value="${escHtml(r.ctnr_no||'')}"></div>
+      <div class="fg-group">
+        <div class="fg-group-lbl">담금</div>
+        <div class="fg-group-body">
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="e-inc-depth" value="${r.inc_depth||''}"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-inc-vol" value="${r.inc_vol||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group fg-group-wide">
+        <div class="fg-group-lbl">숙성검사</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="e-chk-date" value="${r.chk_date||''}"></div>
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="e-chk-depth" value="${r.chk_depth||''}"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-chk-vol" value="${r.chk_vol||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <div class="fg-group-lbl">2차 담금 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="e-bno2-b" value="${escHtml(r.bno2_b||'')}"></div>
+          <div><span>시작 후</span><input type="text" id="e-bno2-a" value="${escHtml(r.bno2_a||'')}"></div>
+        </div>
+      </div>
+    </div>`;
+  } else if (type==='baseliq') {
+    r=DB.baseliq.find(x=>x.id===id); if(!r) return;
+    title='밑술 제조 수정';
+    body=`<div class="form-grid">
+      <div class="fg-group">
+        <div class="fg-group-lbl">검사</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="e-insp-date" value="${r.insp_date||''}"></div>
+          <div><span>인</span><input type="text" id="e-insp-person" value="${escHtml(r.insp_person||'')}"></div>
+        </div>
+      </div>
+      <div class="fg"><label>기호</label><input type="text" id="e-symbol" value="${escHtml(r.symbol||'')}"></div>
+      <div class="fg-group">
+        <div class="fg-group-lbl">담금 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="e-bno-b" value="${escHtml(r.bno_b||'')}"></div>
+          <div><span>시작 후</span><input type="text" id="e-bno-a" value="${escHtml(r.bno_a||'')}"></div>
+        </div>
+      </div>
+      <div class="fg"><label>용기 번호</label><input type="text" id="e-ctnr-no" value="${escHtml(r.ctnr_no||'')}"></div>
+      <div class="fg-group fg-group-wide">
+        <div class="fg-group-lbl">담금</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="e-inc-date" value="${r.inc_date||''}"></div>
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="e-inc-depth" value="${r.inc_depth||''}"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-inc-vol" value="${r.inc_vol||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group fg-group-wide">
+        <div class="fg-group-lbl">숙성검사</div>
+        <div class="fg-group-body">
+          <div><span>월일</span><input type="date" id="e-chk-date" value="${r.chk_date||''}"></div>
+          <div><span>입실심</span><input type="text" inputmode="decimal" class="ni" id="e-chk-depth" value="${r.chk_depth||''}"></div>
+          <div><span>용량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-chk-vol" value="${r.chk_vol||''}"></div>
+          <div><span>비율 (%)</span><input type="text" inputmode="decimal" class="ni" id="e-chk-rate" value="${r.chk_rate||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <div class="fg-group-lbl">술덧 순호</div>
+        <div class="fg-group-body">
+          <div><span>시작 전</span><input type="text" id="e-mash-bno-b" value="${escHtml(r.mash_bno_b||'')}"></div>
+          <div><span>시작 후</span><input type="text" id="e-mash-bno-a" value="${escHtml(r.mash_bno_a||'')}"></div>
+        </div>
+      </div>
+    </div>`;
+  } else if (type==='liquor') {
+    r=DB.liquor.find(x=>x.id===id); if(!r) return;
+    title='주류 수불 수정';
+    body=`<div class="form-grid">
+      <div class="fg"><label>검사 월일</label><input type="date" id="e-date" value="${r.date||''}"></div>
+      ${pFieldVal('e-person',r.person||'')}
+      <div class="fg-group fg-group-wide">
+        <span class="fg-group-lbl">걸름수량</span>
+        <div class="fg-group-body">
+          <div><span>담금순호 사용전</span><input type="text" id="e-bno-b" value="${escHtml(r.bno_b||'')}"></div>
+          <div><span>담금순호 사용후</span><input type="text" id="e-bno-a" value="${escHtml(r.bno_a||'')}"></div>
+          <div><span>수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-inc" value="${r.inc||''}"></div>
+        </div>
+      </div>
+      <div class="fg-group fg-group-wide">
+        <span class="fg-group-lbl">출고수량</span>
+        <div class="fg-group-body">
+          <div><span>수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-out" value="${r.out||''}"></div>
+          <div><span>가격 (원)</span><input type="text" inputmode="decimal" class="ni" id="e-price" value="${r.price||''}"></div>
+          <div><span>배달자</span><input type="text" id="e-driver" value="${escHtml(r.driver||'')}"></div>
+          <div><span>매도처</span><input type="text" id="e-dest" value="${escHtml(r.dest||'')}"></div>
+        </div>
+      </div>
+      <div class="fg-group">
+        <span class="fg-group-lbl">결감 / 잔량</span>
+        <div class="fg-group-body">
+          <div><span>잔수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-remain" value="${r.remain||''}"></div>
+          <div><span>결감수량 (L)</span><input type="text" inputmode="decimal" class="ni" id="e-loss" value="${r.loss||''}"></div>
+          <div><span>결감비율 (%)</span><input type="text" inputmode="decimal" class="ni" id="e-loss-rate" value="${r.loss_rate||''}"></div>
+        </div>
+      </div>
+      <div class="fg"><label>적요</label><input type="text" id="e-memo" value="${escHtml(r.memo||'')}"></div>
+    </div>`;
+  }
+
+  _modalPrevFocus = document.activeElement;
+  document.getElementById('edit-modal-title').textContent = title;
+  document.getElementById('edit-modal-body').innerHTML = body;
+  document.getElementById('edit-save-btn').onclick = saveEdit;
+  document.getElementById('edit-modal').classList.add('open');
+  setTimeout(() => { formatAllNi(); applyGroupAriaLabels(); const first = document.querySelector('#edit-modal-body input, #edit-modal-body select'); if (first) first.focus(); }, 30);
+}
+
+function closeEditModal() {
+  const modal = document.getElementById('edit-modal');
+  modal.classList.remove('open');
+  if (_modalPrevFocus) { _modalPrevFocus.focus(); _modalPrevFocus = null; }
+}
+
+let _modalPrevFocus = null;
+
+// Focus trap for modal
+document.addEventListener('keydown', function(e) {
+  const modal = document.getElementById('edit-modal');
+  if (!modal || !modal.classList.contains('open')) return;
+
+  if (e.key === 'Escape') { closeEditModal(); return; }
+
+  if (e.key === 'Tab') {
+    const focusable = modal.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+});
+
+function saveEdit() {
+  const type=_eType, sub=_eSub, id=_eId;
+  if (type==='simple') {
+    const idx=DB.raw[sub].findIndex(r=>r.id===id); if(idx<0) return;
+    DB.raw[sub][idx]={...DB.raw[sub][idx], date:g('e-date'), person:g('e-person'), type:g('e-type'), inc:g('e-inc'), src:g('e-src'), ms:g('e-ms'), sd:g('e-sd'), red:g('e-red'), mbal:g('e-mbal'), memo:g('e-memo')};
+  } else if (type==='rice') {
+    const idx=DB.raw[sub].findIndex(r=>r.id===id); if(idx<0) return;
+    DB.raw[sub][idx]={...DB.raw[sub][idx], date:g('e-date'), person:g('e-person'), inc:g('e-inc'), price:g('e-price'), src:g('e-src'), s2a:g('e-s2a'), s2b:g('e-s2b'), u2:g('e-u2'), s3a:g('e-s3a'), s3b:g('e-s3b'), u3:g('e-u3'), s4a:g('e-s4a'), s4b:g('e-s4b'), u4:g('e-u4'), memo:g('e-memo')};
+  } else if (type==='koji') {
+    const idx=DB.koji.findIndex(r=>r.id===id); if(idx<0) return;
+    DB.koji[idx]={...DB.koji[idx], date:g('e-date'), person:g('e-person'),
+      ms_cnt:g('e-ms-cnt'), sd_cnt:g('e-sd-cnt'),
+      ms_raw:g('e-ms-raw'), sd_raw:g('e-sd-raw'),
+      ms_b:(document.getElementById('e-ms-b')||{}).value||'',
+      ms_a:(document.getElementById('e-ms-a')||{}).value||'',
+      sd_b:(document.getElementById('e-sd-b')||{}).value||'',
+      sd_a:(document.getElementById('e-sd-a')||{}).value||'' };
+  } else if (type==='mash') {
+    const idx=DB.mash.findIndex(r=>r.id===id); if(idx<0) return;
+    DB.mash[idx]={...DB.mash[idx], date:g('e-date'), bno:g('e-bno'), rtype:g('e-rtype'), rice:g('e-rice'), water:g('e-water'), yeast:g('e-yeast'), koji:g('e-koji'), fvol:g('e-fvol'), fdate:g('e-fdate'), filt:g('e-filt'), alc:g('e-alc'), acid:g('e-acid'), memo:g('e-memo')};
+  } else if (type==='lees') {
+    const idx=DB.lees.findIndex(r=>r.id===id); if(idx<0) return;
+    DB.lees[idx]={...DB.lees[idx], date:g('e-date'), person:g('e-person'), inc:g('e-inc'), method:g('e-method'), out:g('e-out'), memo:g('e-memo')};
+  } else if (type==='firstmash') {
+    const idx=DB.firstmash.findIndex(r=>r.id===id); if(idx<0) return;
+    DB.firstmash[idx]={...DB.firstmash[idx],
+      date:g('e-date'),
+      bno_b:g('e-bno-b'), bno_a:g('e-bno-a'),
+      ctnr_no:g('e-ctnr-no'),
+      inc_depth:g('e-inc-depth'), inc_vol:g('e-inc-vol'),
+      chk_date:g('e-chk-date'), chk_depth:g('e-chk-depth'), chk_vol:g('e-chk-vol'),
+      bno2_b:g('e-bno2-b'), bno2_a:g('e-bno2-a')
+    };
+  } else if (type==='baseliq') {
+    const idx=DB.baseliq.findIndex(r=>r.id===id); if(idx<0) return;
+    DB.baseliq[idx]={...DB.baseliq[idx],
+      insp_date:g('e-insp-date'), insp_person:g('e-insp-person'),
+      symbol:g('e-symbol'),
+      bno_b:g('e-bno-b'), bno_a:g('e-bno-a'),
+      ctnr_no:g('e-ctnr-no'),
+      inc_date:g('e-inc-date'), inc_depth:g('e-inc-depth'), inc_vol:g('e-inc-vol'),
+      chk_date:g('e-chk-date'), chk_depth:g('e-chk-depth'), chk_vol:g('e-chk-vol'), chk_rate:g('e-chk-rate'),
+      mash_bno_b:g('e-mash-bno-b'), mash_bno_a:g('e-mash-bno-a')
+    };
+  } else if (type==='liquor') {
+    const idx=DB.liquor.findIndex(r=>r.id===id); if(idx<0) return;
+    DB.liquor[idx]={...DB.liquor[idx], date:g('e-date'), person:g('e-person'),
+      bno_b:g('e-bno-b'), bno_a:g('e-bno-a'), inc:g('e-inc'),
+      out:g('e-out'), price:g('e-price'), driver:g('e-driver'), dest:g('e-dest'),
+      remain:g('e-remain'), loss:g('e-loss'), loss_rate:g('e-loss-rate'), memo:g('e-memo')};
+  }
+  save();
+  closeEditModal();
+  render();
+  announce('수정이 저장되었습니다');
+}
+
+// ── SETTINGS ACTIONS ───────────────────────────────────
+function saveSettings() {
+  DB.settings.company = document.getElementById('s-co').value.trim();
+  DB.settings.bizno   = document.getElementById('s-bn').value.trim();
+  DB.settings.addr    = document.getElementById('s-addr').value.trim();
+  save();
+  document.getElementById('logo-text').textContent = DB.settings.company||'서울탁주';
+  alert('저장되었습니다.');
+}
+function savePrev() {
+  const dateEl = document.getElementById('p-prevDate');
+  if (dateEl) DB.prevDate = dateEl.value || '';
+  ['평화미','백미','효모','곡자','아스파탐','구연산','입국','주류'].forEach(k=>{
+    const e=document.getElementById('p-'+k); if(e) DB.prev[k]=parseFloat((e.value||'').replace(/,/g,''))||0;
+  });
+  if (!DB.prevCtnr) DB.prevCtnr = {};
+  ['용기','마개'].forEach(k=>{
+    const e=document.getElementById('p-'+k); if(e) DB.prevCtnr[k]=parseFloat((e.value||'').replace(/,/g,''))||0;
+  });
+  save(); alert('기초재고 기준일자 및 전병이월이 저장되었습니다.');
+}
+function exportDB() {
+  const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download='stj_data_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+}
+function importDB(e) {
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{ try { DB=JSON.parse(ev.target.result); save(); renderSettings(); alert('가져오기 완료'); } catch(x){ alert('형식 오류'); } };
+  r.readAsText(f);
+}
+function resetDB() { DB=defData(); save(); renderSettings(); alert('초기화 완료'); }
+
+// ── USER MANAGEMENT ────────────────────────────────────
+function addUser() {
+  const name=(document.getElementById('u-name').value||'').trim();
+  const role=(document.getElementById('u-role').value||'').trim();
+  if (!name) { alert('이름을 입력해주세요.'); return; }
+  if ((DB.users||[]).find(u=>u.name===name)) { alert('이미 등록된 이름입니다.'); return; }
+  if (!DB.users) DB.users=[];
+  DB.users.push({ id:DB.users.length?Math.max(...DB.users.map(u=>u.id))+1:1, name, role });
+  save(); renderSettings();
+}
+function delUser(id) {
+  if (!confirm('담당자를 삭제할까요?')) return;
+  DB.users=(DB.users||[]).filter(u=>u.id!==id);
+  save(); renderSettings(); announce('담당자가 삭제되었습니다');
+}
+function editUser(id) {
+  const u=(DB.users||[]).find(x=>x.id===id); if(!u) return;
+  _eType='user'; _eSub=''; _eId=id;
+  _modalPrevFocus = document.activeElement;
+  document.getElementById('edit-modal-title').textContent = '담당자 수정';
+  document.getElementById('edit-modal-body').innerHTML = `<div class="form-grid">
+    <div class="fg"><label>이름</label><input type="text" id="e-user-name" value="${escHtml(u.name)}"></div>
+    <div class="fg"><label>직책/역할</label><input type="text" id="e-user-role" value="${escHtml(u.role||'')}"></div>
+  </div>`;
+  document.getElementById('edit-save-btn').onclick = function() {
+    const nm=(document.getElementById('e-user-name').value||'').trim();
+    const rl=(document.getElementById('e-user-role').value||'').trim();
+    if(!nm){alert('이름을 입력해주세요.'); return;}
+    const dup=(DB.users||[]).find(x=>x.name===nm && x.id!==id);
+    if(dup){alert('이미 등록된 이름입니다.'); return;}
+    const idx=DB.users.findIndex(x=>x.id===id);
+    DB.users[idx]={...DB.users[idx], name:nm, role:rl};
+    save(); closeEditModal(); renderSettings(); announce('담당자 정보가 수정되었습니다');
+  };
+  document.getElementById('edit-modal').classList.add('open');
+  setTimeout(() => { const first=document.getElementById('e-user-name'); if(first) first.focus(); }, 30);
+}
+
+// ── MOBILE SIDEBAR ─────────────────────────────────────
+function toggleMobileSidebar() {
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sb-overlay');
+  const ham=document.getElementById('ham-btn');
+  const isOpen=sb.classList.contains('mob-open');
+  if(isOpen){sb.classList.remove('mob-open');ov.classList.remove('on');}
+  else{sb.classList.add('mob-open');ov.classList.add('on');}
+  if(ham) ham.setAttribute('aria-expanded', String(!isOpen));
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('sb-overlay').classList.remove('on');
+  const ham=document.getElementById('ham-btn');
+  if(ham) ham.setAttribute('aria-expanded','false');
+}
+
+// ── INIT ───────────────────────────────────────────────
+window.onload = () => {
+  document.getElementById('logo-text').textContent = DB.settings.company||'서울탁주';
+  showSub('raw_효모');
+};
+</script>
+</body>
+</html>
