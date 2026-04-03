@@ -1,0 +1,50 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 200px;
+  --color-wood: #2c1810;
+  --color-koji: #c49a3c;
+  --color-rice: #f7f3ed;
+  --color-ceramic: #6b5e53;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background-color: var(--color-rice);
+  color: var(--color-wood);
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures for all number displays */
+td, th, .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Column grid dividers for all data tables */
+tbody tr td:not(:last-child) {
+  border-right: 1px solid #ede5d8;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4b8a8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a89888;
+}

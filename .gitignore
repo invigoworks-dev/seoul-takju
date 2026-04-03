@@ -1,8 +1,50 @@
-# 모든 파일 무시
-*
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-# HTML 파일 허용
-!*.html
+# Build outputs
+.next/
+out/
+dist/
+build/
 
-# .gitignore 자체 허용
-!.gitignore
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Testing
+coverage/
+
+# Misc
+*.pem
+
+# Paperclip/bkit runtime state
+.bkit/runtime/
+.bkit/snapshots/
+.bkit/state/
+.gstack/
+
+# Placeholder files
+●
