@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { starterApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import ExcelToolbar from '@/components/ledger/ExcelToolbar';
@@ -37,6 +39,7 @@ const iCls = 'w-full bg-transparent border-0 outline-none focus:ring-0 text-ink-
 const nCls = iCls + ' text-right tabular-nums';
 
 export default function StarterPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<StarterEntry[]>([]);
@@ -55,11 +58,15 @@ export default function StarterPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const handleRequestApproval = async (entry: StarterEntry) => {
-    try { await approvalsApi.request('starter', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch {}
+    try { await approvalsApi.request('starter', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const sortedEntries = useMemo(() => sortDir === 'none' ? entries : [...entries].sort((a, b) => {
@@ -79,7 +86,8 @@ export default function StarterPage() {
       const data = await starterApi.list(params);
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -112,20 +120,30 @@ export default function StarterPage() {
       mash_bno_a: get('mash_bno_a') || undefined,
       notes: get('notes') || undefined,
     };
-    if (editEntry) {
-      await starterApi.update(editEntry.id, data);
-    } else {
-      await starterApi.create(data);
+    try {
+      if (editEntry) {
+        await starterApi.update(editEntry.id, data);
+      } else {
+        await starterApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: StarterEntry) => {
     setDeleteConfirm(null);
-    await starterApi.delete(entry.id);
-    loadData();
+    try {
+      await starterApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const closeForm = () => { setShowForm(false); setEditEntry(null); };
@@ -166,6 +184,7 @@ export default function StarterPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="밑술 제조 원장" period={filterDate || undefined} />
       <Header title="밑술 제조" subtitle="밑술(주모) 제조 수불 장부" />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

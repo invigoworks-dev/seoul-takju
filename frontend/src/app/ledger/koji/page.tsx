@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { kojiApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import type { KojiEntry } from '@/lib/types';
@@ -46,6 +48,7 @@ type SortState = { key: SortKey; dir: SortDirection };
 function nextDir(d: SortDirection): SortDirection { return d === 'none' ? 'asc' : d === 'asc' ? 'desc' : 'none'; }
 
 export default function KojiPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<KojiEntry[]>([]);
@@ -64,7 +67,9 @@ export default function KojiPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const loadData = useCallback(async () => {
@@ -74,7 +79,8 @@ export default function KojiPage() {
       const data = await kojiApi.list(params);
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -114,27 +120,39 @@ export default function KojiPage() {
       sd_a: get('sd_a') || undefined,
       notes: get('notes') || undefined,
     };
-    if (editEntry) {
-      await kojiApi.update(editEntry.id, data);
-    } else {
-      await kojiApi.create(data);
+    try {
+      if (editEntry) {
+        await kojiApi.update(editEntry.id, data);
+      } else {
+        await kojiApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: KojiEntry) => {
     setDeleteConfirm(null);
-    await kojiApi.delete(entry.id);
-    loadData();
+    try {
+      await kojiApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const handleRequestApproval = async (entry: KojiEntry) => {
     try {
       await approvalsApi.request('koji', entry.id);
       setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' }));
-    } catch {}
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const closeForm = () => { setShowForm(false); setEditEntry(null); };
@@ -155,7 +173,9 @@ export default function KojiPage() {
       await kojiApi.create({ ledger_date: inlineForm.ledger_date, person: person || undefined, ms_cnt: nums.ms_cnt || undefined, sd_cnt: nums.sd_cnt || undefined, ms_raw: nums.ms_raw || undefined, sd_raw: nums.sd_raw || undefined, ms_b: ms_b || undefined, ms_a: ms_a || undefined, sd_b: sd_b || undefined, sd_a: sd_a || undefined });
       await loadData();
       setInlineForm(emptyInline());
-    } catch {} finally { setInlineSubmitting(false); }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
+    } finally { setInlineSubmitting(false); }
   };
 
   const SortTh = ({ sortKey, children, align = 'center' }: { sortKey: SortKey; children: React.ReactNode; align?: string }) => (
@@ -173,6 +193,7 @@ export default function KojiPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="입국 수불 원장" period={filterDate || undefined} />
       <Header title="입국 수불" subtitle="입국(코지) 수불 장부" />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

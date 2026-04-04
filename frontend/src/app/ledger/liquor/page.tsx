@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { liquorApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import ExcelToolbar from '@/components/ledger/ExcelToolbar';
@@ -39,6 +41,7 @@ const inputCls = 'w-full border border-surface-secondary rounded px-2 py-1.5 tex
 const numInputCls = inputCls + ' tabular-nums';
 
 export default function LiquorPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<LiquorEntry[]>([]);
@@ -57,11 +60,15 @@ export default function LiquorPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const handleRequestApproval = async (entry: LiquorEntry) => {
-    try { await approvalsApi.request('liquor', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch {}
+    try { await approvalsApi.request('liquor', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const sortedEntries = useMemo(() => {
@@ -78,7 +85,8 @@ export default function LiquorPage() {
       const data = await liquorApi.list(params);
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -112,20 +120,30 @@ export default function LiquorPage() {
       shipped: getNum('out') ?? 0,
       balance: getNum('remain') ?? 0,
     };
-    if (editEntry) {
-      await liquorApi.update(editEntry.id, data);
-    } else {
-      await liquorApi.create(data);
+    try {
+      if (editEntry) {
+        await liquorApi.update(editEntry.id, data);
+      } else {
+        await liquorApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: LiquorEntry) => {
     setDeleteConfirm(null);
-    await liquorApi.delete(entry.id);
-    loadData();
+    try {
+      await liquorApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const closeForm = () => { setShowForm(false); setEditEntry(null); };
@@ -146,11 +164,14 @@ export default function LiquorPage() {
       await liquorApi.create({ ledger_date: inlineForm.ledger_date, person: person || undefined, bno_b: bno_b || undefined, bno_a: bno_a || undefined, inc: nums.inc || undefined, out: nums.out || undefined, price: nums.price || undefined, driver: driver || undefined, dest: dest || undefined, remain: nums.remain || undefined, loss: nums.loss || undefined, loss_rate: nums.loss_rate || undefined, notes: notes || undefined, carry_over: 0, received: nums.inc || 0, shipped: nums.out || 0, balance: nums.remain || 0 });
       await loadData();
       setInlineForm(emptyInline());
-    } catch {} finally { setInlineSubmitting(false); }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
+    } finally { setInlineSubmitting(false); }
   };
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="주류 수불 원장" period={filterDate || undefined} />
       <Header title="주류 수불" subtitle="주류 수불 장부" />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

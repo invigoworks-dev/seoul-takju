@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { firstMashApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import ExcelToolbar from '@/components/ledger/ExcelToolbar';
@@ -50,6 +52,7 @@ const iCls = 'w-full bg-transparent border-0 outline-none focus:ring-0 text-ink-
 const nCls = iCls + ' text-right tabular-nums';
 
 export default function FirstMashPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<FirstMashExt[]>([]);
@@ -68,11 +71,15 @@ export default function FirstMashPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const handleRequestApproval = async (entry: FirstMashExt) => {
-    try { await approvalsApi.request('first_mash', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch {}
+    try { await approvalsApi.request('first_mash', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const sortedEntries = useMemo(() => sortDir === 'none' ? entries : [...entries].sort((a, b) => sortDir === 'asc' ? a.ledger_date.localeCompare(b.ledger_date) : b.ledger_date.localeCompare(a.ledger_date)), [entries, sortDir]);
@@ -89,7 +96,8 @@ export default function FirstMashPage() {
       const data = await firstMashApi.list(params) as FirstMashExt[];
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -118,20 +126,30 @@ export default function FirstMashPage() {
       bno2_a: get('bno2_a') || undefined,
       notes: get('notes') || undefined,
     };
-    if (editEntry) {
-      await firstMashApi.update(editEntry.id, data);
-    } else {
-      await firstMashApi.create(data);
+    try {
+      if (editEntry) {
+        await firstMashApi.update(editEntry.id, data);
+      } else {
+        await firstMashApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: FirstMashExt) => {
     setDeleteConfirm(null);
-    await firstMashApi.delete(entry.id);
-    loadData();
+    try {
+      await firstMashApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const closeForm = () => { setShowForm(false); setEditEntry(null); };
@@ -168,6 +186,7 @@ export default function FirstMashPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="1차 술덧 담금 원장" period={filterDate || undefined} />
       <Header title="1차 술덧 담금" subtitle="1차 술덧 담금 공정 수불 장부" />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

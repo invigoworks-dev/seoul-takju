@@ -5,7 +5,8 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { resolveCarryOver } = require('../carryOver');
+const { resolveCarryOver, propagateCarryOver } = require('../carryOver');
+const { logInsert, logUpdate, logDelete } = require('../auditLog');
 const authMiddleware = require('../middleware/auth');
 
 router.use(authMiddleware);
@@ -62,51 +63,83 @@ router.post('/', async (req, res, next) => {
       ledger_date
     );
 
-    const { rows } = await pool.query(
-      `INSERT INTO fermentation_agent_ledger
-         (material_id, ledger_date, carry_over, received, used, notes, person)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [material_id, ledger_date, carry_over, received, used, notes, person ?? null]
-    );
-    res.status(201).json(rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(
+        `INSERT INTO fermentation_agent_ledger
+           (material_id, ledger_date, carry_over, received, used, notes, person)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [material_id, ledger_date, carry_over, received, used, notes, person ?? null]
+      );
+      await logInsert(client, 'fermentation_agent_ledger', rows[0].id, rows[0], req.user?.id);
+      if (material_id) {
+        await propagateCarryOver(client, 'fermentation_agent_ledger', 'material_id', material_id, ledger_date);
+      }
+      await client.query('COMMIT');
+      res.status(201).json(rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) { next(err); }
 });
 
 // PUT /api/fermentation-agent/:id
 router.put('/:id', async (req, res, next) => {
   try {
-    const existing = await pool.query(
-      'SELECT * FROM fermentation_agent_ledger WHERE id = $1',
-      [req.params.id]
-    );
-    if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
-    const cur = existing.rows[0];
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const existing = await client.query(
+        'SELECT * FROM fermentation_agent_ledger WHERE id = $1 FOR UPDATE',
+        [req.params.id]
+      );
+      if (!existing.rows.length) { client.release(); return res.status(404).json({ error: 'Not found' }); }
+      const cur = existing.rows[0];
 
-    const carry_over  = req.body.carry_over  ?? cur.carry_over;
-    const received    = req.body.received    ?? cur.received;
-    const used        = req.body.used        ?? cur.used;
-    const notes       = req.body.notes       ?? cur.notes;
-    const person      = req.body.person      !== undefined ? req.body.person : cur.person;
+      const material_id = cur.material_id;
+      const carry_over  = req.body.carry_over  ?? cur.carry_over;
+      const received    = req.body.received    ?? cur.received;
+      const used        = req.body.used        ?? cur.used;
+      const notes       = req.body.notes       ?? cur.notes;
+      const person      = req.body.person      !== undefined ? req.body.person : cur.person;
 
-    const { rows } = await pool.query(
-      `UPDATE fermentation_agent_ledger
-       SET carry_over=$1, received=$2, used=$3, notes=$4, person=$5, updated_at=NOW()
-       WHERE id=$6 RETURNING *`,
-      [carry_over, received, used, notes, person, req.params.id]
-    );
-    res.json(rows[0]);
+      const { rows } = await client.query(
+        `UPDATE fermentation_agent_ledger
+         SET carry_over=$1, received=$2, used=$3, notes=$4, person=$5, updated_at=NOW()
+         WHERE id=$6 RETURNING *`,
+        [carry_over, received, used, notes, person, req.params.id]
+      );
+      await logUpdate(client, 'fermentation_agent_ledger', cur.id, cur, rows[0], req.user?.id);
+      if (material_id) {
+        await propagateCarryOver(client, 'fermentation_agent_ledger', 'material_id', material_id, cur.ledger_date);
+      }
+      await client.query('COMMIT');
+      res.json(rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) { next(err); }
 });
 
 // DELETE /api/fermentation-agent/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM fermentation_agent_ledger WHERE id = $1',
+    const existing = await pool.query(
+      'SELECT * FROM fermentation_agent_ledger WHERE id = $1',
       [req.params.id]
     );
-    if (!rowCount) return res.status(404).json({ error: 'Not found' });
+    if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
+    const old = existing.rows[0];
+    await pool.query('DELETE FROM fermentation_agent_ledger WHERE id = $1', [req.params.id]);
+    await logDelete(pool, 'fermentation_agent_ledger', old.id, old, req.user?.id);
     res.status(204).end();
   } catch (err) { next(err); }
 });

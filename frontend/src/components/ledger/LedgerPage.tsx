@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import LedgerTable from './LedgerTable';
 import LedgerForm from './LedgerForm';
 import ExcelToolbar from './ExcelToolbar';
@@ -19,6 +21,7 @@ interface LedgerPageProps {
 }
 
 export default function LedgerPage({ category }: LedgerPageProps) {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
@@ -54,8 +57,8 @@ export default function LedgerPage({ category }: LedgerPageProps) {
         map[a.record_id] = a.status;
       }
       setApprovalMap(map);
-    } catch {
-      // non-critical
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
     }
   }, [category]);
 
@@ -69,7 +72,8 @@ export default function LedgerPage({ category }: LedgerPageProps) {
       setEntries(entriesData);
       setMaterials(materialsData);
       await loadApprovals(entriesData.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
       setMaterials([]);
     } finally {
@@ -93,14 +97,19 @@ export default function LedgerPage({ category }: LedgerPageProps) {
 
   const handleSubmit = async (data: LedgerEntryInput) => {
     const mapped = mapFieldsForBackend(data);
-    if (editEntry) {
-      await ledgerApi.update(category, editEntry.id, mapped as unknown as Partial<LedgerEntryInput>);
-    } else {
-      await ledgerApi.create(category, mapped as unknown as LedgerEntryInput);
+    try {
+      if (editEntry) {
+        await ledgerApi.update(category, editEntry.id, mapped as unknown as Partial<LedgerEntryInput>);
+      } else {
+        await ledgerApi.create(category, mapped as unknown as LedgerEntryInput);
+      }
+      await loadData();
+      setShowForm(false);
+      setEditEntry(null);
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    await loadData();
-    setShowForm(false);
-    setEditEntry(null);
   };
 
   const handleInlineChange: InlineRowState['onChange'] = (field, value) => {
@@ -115,8 +124,8 @@ export default function LedgerPage({ category }: LedgerPageProps) {
       await ledgerApi.create(category, mapped as unknown as LedgerEntryInput);
       await loadData();
       setInlineForm(emptyInlineForm());
-    } catch {
-      // keep form data on error
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     } finally {
       setInlineSubmitting(false);
     }
@@ -133,16 +142,21 @@ export default function LedgerPage({ category }: LedgerPageProps) {
 
   const handleDelete = async (entry: LedgerEntry) => {
     setDeleteConfirm(null);
-    await ledgerApi.delete(category, entry.id);
-    await loadData();
+    try {
+      await ledgerApi.delete(category, entry.id);
+      await loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const handleRequestApproval = async (entry: LedgerEntry) => {
     try {
       await approvalsApi.request(category, entry.id);
       setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' }));
-    } catch {
-      // silently ignore
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
     }
   };
 
@@ -154,6 +168,7 @@ export default function LedgerPage({ category }: LedgerPageProps) {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title={`${label} 수불 원장`} period={filterDate || undefined} />
       <Header title={label} subtitle={`${label} 수불 장부 입력 및 조회`} />
 
       <div className="p-4 space-y-3">
@@ -185,11 +200,11 @@ export default function LedgerPage({ category }: LedgerPageProps) {
               filterDate={filterDate}
               canWrite={canWrite}
             />
-            {canWrite && (
+            {canWrite && editEntry && (
               <button
                 onClick={() => {
                   setEditEntry(null);
-                  setShowForm(true);
+                  setShowForm(false);
                 }}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold text-ink-inverse bg-brand-wood rounded hover:bg-brand-wood-light transition-colors"
               >
@@ -200,18 +215,23 @@ export default function LedgerPage({ category }: LedgerPageProps) {
           </div>
         </div>
 
-        {/* Form modal */}
-        {showForm && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ledger-form-modal-title"
-            className="fixed inset-0 bg-brand-wood/50 flex items-center justify-center z-50 p-4"
-          >
-            <div className="bg-surface-card rounded-lg shadow-2xl w-full max-w-lg p-5 border border-surface-secondary">
-              <h3 id="ledger-form-modal-title" className="text-sm font-bold text-ink-primary mb-3">
-                {editEntry ? `${label} 수정` : `${label} 신규 등록`}
+        {/* Data Entry Card (기획서 패턴: 테이블 위 카드형 폼) */}
+        {canWrite && (showForm || !editEntry) && (
+          <div className="bg-surface-card rounded-lg border border-surface-secondary overflow-hidden no-print">
+            <div className="px-4 py-2.5 bg-brand-wood/5 border-b border-surface-secondary flex items-center justify-between">
+              <h3 className="text-xs font-bold text-brand-koji uppercase tracking-wider">
+                {editEntry ? `${label} 수정` : '데이터 입력'}
               </h3>
+              {editEntry && (
+                <button
+                  onClick={() => { setShowForm(false); setEditEntry(null); }}
+                  className="text-[11px] text-ink-muted hover:text-ink-secondary"
+                >
+                  취소
+                </button>
+              )}
+            </div>
+            <div className="p-4">
               <LedgerForm
                 materials={materials}
                 entry={editEntry}
@@ -272,13 +292,6 @@ export default function LedgerPage({ category }: LedgerPageProps) {
               canWrite={canWrite}
               materials={materials}
               approvalMap={approvalMap}
-              inlineRow={canWrite ? {
-                form: inlineForm,
-                onChange: handleInlineChange,
-                onSubmit: handleInlineSubmit,
-                onReset: handleInlineReset,
-                submitting: inlineSubmitting,
-              } : undefined}
             />
           )}
         </div>

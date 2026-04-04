@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
 import { settingsApi, personsApi, type CompanyInfo, type PrevBalance, type Person } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -75,6 +76,7 @@ function NumInput({ value, onChange }: { value: string; onChange: (v: string) =>
 }
 
 export default function SettingsPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
@@ -116,8 +118,8 @@ export default function SettingsPage() {
       setPrevBalances(balMap);
       if (sharedDate) setPrevDate(sharedDate);
       setPersons(personsArr);
-    } catch {
-      // silent
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
     }
   }, []);
 

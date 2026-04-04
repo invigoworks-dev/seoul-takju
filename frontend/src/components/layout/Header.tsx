@@ -2,6 +2,7 @@
 
 import { getTodayString, formatDate } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
+import { PrintButton } from '@/components/ui/PrintHeader';
 
 interface HeaderProps {
   title: string;
@@ -19,6 +20,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
         {subtitle && <p className="text-xs text-ink-muted mt-0.5">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-4">
+        <PrintButton />
         <span className="text-xs text-ink-muted tabular-nums">{today}</span>
         {user && (
           <div className="flex items-center gap-3 border-l border-surface-secondary pl-4">

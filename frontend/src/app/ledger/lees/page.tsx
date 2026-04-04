@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { leesApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import type { LeesEntry } from '@/lib/types';
@@ -33,6 +35,7 @@ type SortState = { key: SortKey; dir: SortDirection2 };
 function nextDir(d: SortDirection2): SortDirection2 { return d === 'none' ? 'asc' : d === 'asc' ? 'desc' : 'none'; }
 
 export default function LeesPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<LeesEntryExt[]>([]);
@@ -51,7 +54,9 @@ export default function LeesPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const loadData = useCallback(async () => {
@@ -61,7 +66,8 @@ export default function LeesPage() {
       const data = await leesApi.list(params) as LeesEntryExt[];
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -72,7 +78,9 @@ export default function LeesPage() {
     try {
       await approvalsApi.request('lees', entry.id);
       setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' }));
-    } catch {}
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -94,20 +102,30 @@ export default function LeesPage() {
       used: getNum('out') ?? 0,
       notes: get('notes') || undefined,
     };
-    if (editEntry) {
-      await leesApi.update(editEntry.id, data);
-    } else {
-      await leesApi.create(data);
+    try {
+      if (editEntry) {
+        await leesApi.update(editEntry.id, data);
+      } else {
+        await leesApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: LeesEntryExt) => {
     setDeleteConfirm(null);
-    await leesApi.delete(entry.id);
-    loadData();
+    try {
+      await leesApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const emptyInline = () => ({ ledger_date: getTodayString(), person: '', inc: 0, method: '', out: 0, notes: '' });
@@ -126,7 +144,9 @@ export default function LeesPage() {
       await leesApi.create(d);
       await loadData();
       setInlineForm(emptyInline());
-    } catch {} finally { setInlineSubmitting(false); }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
+    } finally { setInlineSubmitting(false); }
   };
 
   const sortedEntries = useMemo(() => {
@@ -154,6 +174,7 @@ export default function LeesPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="술지거미 수불 원장" period={filterDate || undefined} />
       <Header title="술지거미 수불" subtitle="술지거미(여과 찌꺼기) 수불 장부" />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

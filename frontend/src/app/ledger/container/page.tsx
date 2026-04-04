@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { containerApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import ExcelToolbar from '@/components/ledger/ExcelToolbar';
@@ -17,6 +19,7 @@ const iCls = 'w-full bg-transparent border-0 outline-none focus:ring-0 text-ink-
 const nCls = iCls + ' text-right tabular-nums';
 
 export default function ContainerPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<ContainerEntry[]>([]);
@@ -36,11 +39,15 @@ export default function ContainerPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const handleRequestApproval = async (entry: ContainerEntry) => {
-    try { await approvalsApi.request('container', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch {}
+    try { await approvalsApi.request('container', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const sortedEntries = useMemo(() => sortDir === 'none' ? entries : [...entries].sort((a, b) => sortDir === 'asc' ? a.ledger_date.localeCompare(b.ledger_date) : b.ledger_date.localeCompare(a.ledger_date)), [entries, sortDir]);
@@ -61,7 +68,9 @@ export default function ContainerPage() {
       await containerApi.create({ ...inlineForm });
       await loadData();
       setInlineForm(emptyInline());
-    } catch {} finally { setInlineSubmitting(false); }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
+    } finally { setInlineSubmitting(false); }
   };
 
   const loadData = useCallback(async () => {
@@ -73,7 +82,8 @@ export default function ContainerPage() {
       const data = await containerApi.list(Object.keys(params).length ? params : undefined);
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -93,24 +103,35 @@ export default function ContainerPage() {
       used: Number(fd.get('used')) || 0,
       notes: fd.get('notes') as string || undefined,
     };
-    if (editEntry) {
-      await containerApi.update(editEntry.id, data);
-    } else {
-      await containerApi.create(data);
+    try {
+      if (editEntry) {
+        await containerApi.update(editEntry.id, data);
+      } else {
+        await containerApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: ContainerEntry) => {
     setDeleteConfirm(null);
-    await containerApi.delete(entry.id);
-    loadData();
+    try {
+      await containerApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="용기/마개 수불 원장" period={filterDate || undefined} />
       <Header title="용기/마개 수불" subtitle="용기 및 마개 수불 장부" />
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-3">

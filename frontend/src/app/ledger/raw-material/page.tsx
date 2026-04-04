@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { rawMaterialExtApi, materialsApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import ExcelToolbar from '@/components/ledger/ExcelToolbar';
@@ -40,6 +42,7 @@ const iCls = 'w-full bg-transparent border-0 outline-none focus:ring-0 text-ink-
 const nCls = iCls + ' text-right tabular-nums';
 
 function RawMaterialPageInner() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const searchParams = useSearchParams();
@@ -63,11 +66,15 @@ function RawMaterialPageInner() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const handleRequestApproval = async (entry: RawMaterialEntryExtended) => {
-    try { await approvalsApi.request('raw_material', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch {}
+    try { await approvalsApi.request('raw_material', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const sortedEntries = useMemo(() => sortDir === 'none' ? entries : [...entries].sort((a, b) => sortDir === 'asc' ? a.ledger_date.localeCompare(b.ledger_date) : b.ledger_date.localeCompare(a.ledger_date)), [entries, sortDir]);
@@ -93,7 +100,8 @@ function RawMaterialPageInner() {
       const data = await rawMaterialExtApi.list(params);
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -147,20 +155,30 @@ function RawMaterialPageInner() {
       };
     }
 
-    if (editEntry) {
-      await rawMaterialExtApi.update(editEntry.id, data);
-    } else {
-      await rawMaterialExtApi.create(data);
+    try {
+      if (editEntry) {
+        await rawMaterialExtApi.update(editEntry.id, data);
+      } else {
+        await rawMaterialExtApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: RawMaterialEntryExtended) => {
     setDeleteConfirm(null);
-    await rawMaterialExtApi.delete(entry.id);
-    loadData();
+    try {
+      await rawMaterialExtApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const closeForm = () => { setShowForm(false); setEditEntry(null); };
@@ -201,6 +219,7 @@ function RawMaterialPageInner() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="원료 수불 원장" period={filterDate || undefined} />
       <Header title={pageTitle} subtitle={subtitle} />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

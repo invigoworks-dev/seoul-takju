@@ -89,10 +89,12 @@ function NavLink({
   item,
   pathname,
   searchParams,
+  onNavigate,
 }: {
   item: NavItem;
   pathname: string;
   searchParams: ReturnType<typeof useSearchParams>;
+  onNavigate?: () => void;
 }) {
   const [hrefPath, hrefQuery] = item.href.split('?');
   let isActive: boolean;
@@ -109,6 +111,7 @@ function NavLink({
     <li>
       <Link
         href={item.href}
+        onClick={onNavigate}
         className={cn(
           'flex items-center gap-2.5 px-2.5 py-2 rounded text-[13px] transition-colors',
           isActive
@@ -139,6 +142,7 @@ function NavSection({
   searchParams,
   userRole,
   collapsible = false,
+  onNavigate,
 }: {
   title: string;
   items: NavItem[];
@@ -146,6 +150,7 @@ function NavSection({
   searchParams: ReturnType<typeof useSearchParams>;
   userRole?: UserRole;
   collapsible?: boolean;
+  onNavigate?: () => void;
 }) {
   const [open, setOpen] = useState(true);
   const filtered = items.filter(
@@ -177,6 +182,7 @@ function NavSection({
               item={item}
               pathname={pathname}
               searchParams={searchParams}
+              onNavigate={onNavigate}
             />
           ))}
         </ul>
@@ -191,21 +197,33 @@ export default function Sidebar() {
   const searchParams = useSearchParams();
   const userRole = user?.role;
   const activeTab = getActiveTab(pathname);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile sidebar on navigation
+  const prevPathname = pathname;
 
   return (
     <>
       {/* ── Top navigation bar ── */}
       <nav className="fixed top-0 left-0 right-0 h-14 bg-brand-wood z-50 flex items-center px-4 gap-1 border-b border-brand-koji/15">
+        {/* Mobile menu toggle */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="md:hidden text-ink-inverse/70 hover:text-ink-inverse mr-2 text-lg"
+          aria-label="메뉴"
+        >
+          {mobileOpen ? '✕' : '☰'}
+        </button>
         <span className="text-brand-koji font-bold text-sm tracking-tight mr-3 shrink-0">
           서울탁주
         </span>
-        <span className="w-px h-5 bg-brand-koji/20 mr-1 shrink-0" aria-hidden />
+        <span className="w-px h-5 bg-brand-koji/20 mr-1 shrink-0 hidden md:block" aria-hidden />
         {TOP_TABS.map((tab) => (
           <Link
             key={tab.id}
             href={TAB_DEFAULT_ROUTES[tab.id]}
             className={cn(
-              'px-3 py-1.5 rounded text-[13px] font-medium transition-colors',
+              'hidden md:inline-flex px-3 py-1.5 rounded text-[13px] font-medium transition-colors',
               activeTab === tab.id
                 ? 'bg-brand-koji/20 text-brand-koji'
                 : 'text-ink-inverse/50 hover:bg-brand-koji/8 hover:text-ink-inverse/70'
@@ -216,8 +234,19 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* ── Context sidebar ── */}
-      <aside className="fixed left-0 top-14 bottom-0 w-[200px] bg-brand-wood text-ink-inverse flex flex-col z-40 border-r border-brand-koji/10">
+      <aside className={cn(
+        'fixed left-0 top-14 bottom-0 w-[200px] bg-brand-wood text-ink-inverse flex flex-col z-40 border-r border-brand-koji/10 transition-transform duration-200',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      )}>
         <nav className="flex-1 px-2 py-3 overflow-y-auto">
           {activeTab === 'mfg' && (
             <>
@@ -227,6 +256,7 @@ export default function Sidebar() {
                 pathname={pathname}
                 searchParams={searchParams}
                 userRole={userRole}
+                onNavigate={() => setMobileOpen(false)}
               />
               <NavSection
                 title="원료 수불"
@@ -242,6 +272,7 @@ export default function Sidebar() {
                 pathname={pathname}
                 searchParams={searchParams}
                 userRole={userRole}
+                onNavigate={() => setMobileOpen(false)}
               />
             </>
           )}
@@ -271,6 +302,7 @@ export default function Sidebar() {
                 pathname={pathname}
                 searchParams={searchParams}
                 userRole={userRole}
+                onNavigate={() => setMobileOpen(false)}
               />
               <NavSection
                 title="관리"
@@ -278,6 +310,7 @@ export default function Sidebar() {
                 pathname={pathname}
                 searchParams={searchParams}
                 userRole={userRole}
+                onNavigate={() => setMobileOpen(false)}
               />
             </>
           )}

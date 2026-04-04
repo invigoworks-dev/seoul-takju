@@ -272,9 +272,6 @@ export interface LiquorEntry {
   carry_over: number;
   received: number;
   shipped: number;
-  shipped_sales?: number;
-  shipped_self?: number;
-  shipped_other?: number;
   unit?: string;
   notes?: string;
   balance: number;

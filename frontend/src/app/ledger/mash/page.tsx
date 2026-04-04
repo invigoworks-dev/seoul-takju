@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { mashApi, approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
 import ExcelToolbar from '@/components/ledger/ExcelToolbar';
@@ -20,6 +22,7 @@ const inputCls = 'w-full border border-surface-secondary rounded px-2 py-1.5 tex
 const numInputCls = inputCls + ' tabular-nums';
 
 export default function MashPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const canWrite = user?.role !== 'viewer';
   const [entries, setEntries] = useState<MashEntry[]>([]);
@@ -38,11 +41,15 @@ export default function MashPage() {
       const map: Record<number, ApprovalStatus> = {};
       for (const a of data as Approval[]) map[a.record_id] = a.status;
       setApprovalMap(map);
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to load approvals:', err);
+    }
   }, []);
 
   const handleRequestApproval = async (entry: MashEntry) => {
-    try { await approvalsApi.request('mash', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch {}
+    try { await approvalsApi.request('mash', entry.id); setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' })); } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const sortedEntries = useMemo(() => sortDir === 'none' ? entries : [...entries].sort((a, b) => sortDir === 'asc' ? a.ledger_date.localeCompare(b.ledger_date) : b.ledger_date.localeCompare(a.ledger_date)), [entries, sortDir]);
@@ -55,7 +62,8 @@ export default function MashPage() {
       const data = await mashApi.list(params);
       setEntries(data);
       await loadApprovals(data.map((e) => e.id));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setEntries([]);
     } finally {
       setLoading(false);
@@ -84,20 +92,30 @@ export default function MashPage() {
       acid: getNum('acid'),
       notes: get('notes') || undefined,
     };
-    if (editEntry) {
-      await mashApi.update(editEntry.id, data);
-    } else {
-      await mashApi.create(data);
+    try {
+      if (editEntry) {
+        await mashApi.update(editEntry.id, data);
+      } else {
+        await mashApi.create(data);
+      }
+      setShowForm(false);
+      setEditEntry(null);
+      loadData();
+      showToast('저장되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
     }
-    setShowForm(false);
-    setEditEntry(null);
-    loadData();
   };
 
   const handleDelete = async (entry: MashEntry) => {
     setDeleteConfirm(null);
-    await mashApi.delete(entry.id);
-    loadData();
+    try {
+      await mashApi.delete(entry.id);
+      loadData();
+      showToast('삭제되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '삭제에 실패했습니다', 'error');
+    }
   };
 
   const closeForm = () => { setShowForm(false); setEditEntry(null); };
@@ -118,11 +136,14 @@ export default function MashPage() {
       await mashApi.create({ ledger_date: inlineForm.ledger_date, bno: bno || undefined, rtype: rtype || undefined, rice: nums.rice || undefined, water: nums.water || undefined, yeast: nums.yeast || undefined, koji: nums.koji || undefined, fvol: nums.fvol || undefined, fdate: fdate || undefined, filt: nums.filt || undefined, alc: nums.alc || undefined, acid: nums.acid || undefined, notes: notes || undefined });
       await loadData();
       setInlineForm(emptyInline());
-    } catch {} finally { setInlineSubmitting(false); }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '저장에 실패했습니다', 'error');
+    } finally { setInlineSubmitting(false); }
   };
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="술덧담금 및 걸름 원장" period={filterDate || undefined} />
       <Header title="술덧담금 및 걸름" subtitle="술덧담금 및 술덧걸름 수불 장부" />
       <div className="p-4 space-y-3">
         {/* Toolbar */}

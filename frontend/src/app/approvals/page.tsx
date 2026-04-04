@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
 import { approvalsApi } from '@/lib/api';
 import type { Approval } from '@/lib/api';
@@ -26,6 +27,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export default function ApprovalsPage() {
+  const { showToast } = useToast();
   const { user } = useAuth();
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +47,8 @@ export default function ApprovalsPage() {
       const data = await approvalsApi.list(statusFilter ? { status: statusFilter } : undefined);
       setApprovals(data);
       setSelectedIds(new Set());
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setApprovals([]);
     } finally {
       setLoading(false);
@@ -57,16 +60,26 @@ export default function ApprovalsPage() {
   }, [loadApprovals]);
 
   const handleApprove = async (id: number) => {
-    await approvalsApi.approve(id);
-    await loadApprovals();
+    try {
+      await approvalsApi.approve(id);
+      await loadApprovals();
+      showToast('승인되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
   };
 
   const handleReject = async () => {
     if (rejectId === null) return;
-    await approvalsApi.reject(rejectId, rejectReason);
-    setRejectId(null);
-    setRejectReason('');
-    await loadApprovals();
+    try {
+      await approvalsApi.reject(rejectId, rejectReason);
+      setRejectId(null);
+      setRejectReason('');
+      await loadApprovals();
+      showToast('반려되었습니다', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '오류가 발생했습니다', 'error');
+    }
   };
 
   // 일괄 처리

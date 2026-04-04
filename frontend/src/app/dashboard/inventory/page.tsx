@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { dashboardApi, settingsApi } from '@/lib/api';
 import { cn, getTodayString } from '@/lib/utils';
 
@@ -288,6 +290,7 @@ function HistoryTable({
 // ── Page ──────────────────────────────────────────────────
 
 export default function InventoryPage() {
+  const { showToast } = useToast();
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
   const [historyData, setHistoryData] = useState<HistoryResponse | null>(null);
   const [selectedItem, setSelectedItem] = useState<string>('평화미');
@@ -305,7 +308,9 @@ export default function InventoryPage() {
         setDateFrom(date);
         setPrevDate(balances[0].balance_date ?? '');
       }
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('Failed to load prev balance:', err);
+    });
   }, []);
 
   // Load summary whenever dateTo changes
@@ -314,7 +319,8 @@ export default function InventoryPage() {
     try {
       const result = await dashboardApi.inventorySummary(to) as unknown as SummaryResponse;
       setSummaryData(result);
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setSummaryData(null);
     } finally {
       setLoadingSummary(false);
@@ -332,7 +338,8 @@ export default function InventoryPage() {
     try {
       const result = await dashboardApi.inventoryHistory(item, from, to) as unknown as HistoryResponse;
       setHistoryData(result);
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setHistoryData(null);
     } finally {
       setLoadingHistory(false);
@@ -352,7 +359,9 @@ export default function InventoryPage() {
         setDateFrom(b[0].balance_date || getDaysAgoString(30));
         setPrevDate(b[0].balance_date ?? '');
       }
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('Failed to load prev balance:', err);
+    });
   }, []);
 
   // Sort items by canonical order
@@ -366,6 +375,7 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary flex flex-col">
+      <PrintHeader title="재고현황" period={dateTo || undefined} />
       <Header title="재고현황" subtitle={subtitle} />
 
       <div className="flex flex-col flex-1 p-4 gap-3 min-h-0" style={{ minHeight: 'calc(100vh - 64px)' }}>

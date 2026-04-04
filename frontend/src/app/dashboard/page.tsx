@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useToast } from '@/components/ui/Toast';
+import PrintHeader from '@/components/ui/PrintHeader';
 import { dashboardApi } from '@/lib/api';
 import type { DailyReport, DailyReportRow } from '@/lib/types';
 import { formatNumber, toNum, getTodayString, cn } from '@/lib/utils';
@@ -224,6 +226,7 @@ function getContainerRows(report: DailyReport): (string | number)[][] {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { showToast } = useToast();
   const [date, setDate] = useState(getTodayString());
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -233,7 +236,8 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       setReport(await dashboardApi.getDailyReport(d));
-    } catch {
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다', 'error');
       setReport(null);
     } finally {
       setLoading(false);
@@ -253,6 +257,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <PrintHeader title="주류 및 자재 현황일보" period={dateLabel} />
       {/* Top bar — hidden on print */}
       <div className="px-4 py-3 border-b border-surface-secondary bg-surface-card flex items-center gap-3 print:hidden">
         <div>
