@@ -315,6 +315,30 @@ export const excelApi = {
   },
 };
 
+// Monthly Close API
+export const monthlyCloseApi = {
+  list: (): Promise<Array<{
+    id: number;
+    year_month: string;
+    closed_by: string;
+    closed_by_name: string;
+    closed_at: string;
+    notes?: string;
+  }>> => fetchApi('/monthly-close'),
+
+  check: (yearMonth: string): Promise<{ closed: boolean; data: unknown }> =>
+    fetchApi(`/monthly-close/${yearMonth}`),
+
+  close: (yearMonth: string, notes?: string): Promise<unknown> =>
+    fetchApi('/monthly-close', {
+      method: 'POST',
+      body: JSON.stringify({ year_month: yearMonth, notes }),
+    }),
+
+  open: (yearMonth: string): Promise<void> =>
+    fetchApi(`/monthly-close/${yearMonth}`, { method: 'DELETE' }),
+};
+
 // Approval Workflow API
 export interface Approval {
   id: number;

@@ -18,6 +18,7 @@ const container         = require('./routes/container');
 const approvals         = require('./routes/approvals');
 const ledgerExcel       = require('./routes/ledgerExcel');
 const settings          = require('./routes/settings');
+const monthlyClose      = require('./routes/monthlyClose');
 const errorHandler      = require('./middleware/errorHandler');
 
 const app = express();
@@ -56,6 +57,9 @@ app.use('/api/ledgers',            ledgerExcel);
 
 // 설정 (업체정보, 전병이월)
 app.use('/api/settings',           settings);
+
+// 월마감 관리
+app.use('/api/monthly-close',      monthlyClose);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

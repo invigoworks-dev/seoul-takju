@@ -21,6 +21,26 @@ const nCls = iCls + ' text-right tabular-nums';
 const inputCls = 'w-full border border-surface-secondary rounded px-2 py-1.5 text-sm text-ink-primary bg-surface-primary focus:outline-none focus:ring-2 focus:ring-brand-koji/20 focus:border-brand-koji';
 const numInputCls = inputCls + ' tabular-nums';
 
+function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-surface-secondary rounded-lg p-3 bg-surface-card flex flex-col gap-2">
+      <div className="text-[10px] font-bold text-brand-koji uppercase tracking-wider pb-1.5 border-b border-surface-secondary">
+        {label}
+      </div>
+      <div className="flex gap-2">{children}</div>
+    </div>
+  );
+}
+
+function SubField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 flex-1 min-w-0">
+      <span className="text-[10px] text-ink-muted font-semibold uppercase">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function MashPage() {
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -175,66 +195,58 @@ export default function MashPage() {
                 {editEntry ? '술덧담금 수정' : '술덧담금 신규 등록'}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">담금 일자 *</label>
-                    <input type="date" name="ledger_date" defaultValue={editEntry?.ledger_date ?? getTodayString()} required className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">담금 번호</label>
-                    <input type="text" name="bno" defaultValue={editEntry?.bno ?? ''} placeholder="번호" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">원료 종류</label>
-                    <input type="text" name="rtype" defaultValue={editEntry?.rtype ?? ''} placeholder="평화미/백미" className={inputCls} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">쌀 (kg)</label>
-                    <input type="number" name="rice" step="0.001" defaultValue={editEntry?.rice ?? ''} placeholder="0" className={numInputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">물 (L)</label>
-                    <input type="number" name="water" step="0.001" defaultValue={editEntry?.water ?? ''} placeholder="0" className={numInputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">효모 (g)</label>
-                    <input type="number" name="yeast" step="0.001" defaultValue={editEntry?.yeast ?? ''} placeholder="0" className={numInputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ink-secondary mb-1">곡자 (kg)</label>
-                    <input type="number" name="koji" step="0.001" defaultValue={editEntry?.koji ?? ''} placeholder="0" className={numInputCls} />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-xs text-ink-secondary mb-1">담금량 (L)</label>
-                  <input type="number" name="fvol" step="0.001" defaultValue={editEntry?.fvol ?? ''} placeholder="0" className={numInputCls} />
+                  <label className="block text-xs text-ink-secondary mb-1">담금 일자 *</label>
+                  <input type="date" name="ledger_date" defaultValue={editEntry?.ledger_date ?? getTodayString()} required className={inputCls} />
                 </div>
 
-                <div className="border-t border-surface-secondary pt-3">
-                  <p className="text-[10px] text-ink-muted font-bold uppercase tracking-wider mb-2">걸름</p>
-                  <div className="grid grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-xs text-ink-secondary mb-1">걸름 일자</label>
-                      <input type="date" name="fdate" defaultValue={editEntry?.fdate ?? ''} className={inputCls} />
+                <FieldGroup label="담금">
+                  <SubField label="담금 번호">
+                    <input type="text" name="bno" defaultValue={editEntry?.bno ?? ''} placeholder="번호" className={inputCls} />
+                  </SubField>
+                  <SubField label="원료 종류">
+                    <input type="text" name="rtype" defaultValue={editEntry?.rtype ?? ''} placeholder="평화미/백미" className={inputCls} />
+                  </SubField>
+                  <SubField label="담금량 (L)">
+                    <input type="number" name="fvol" step="0.001" defaultValue={editEntry?.fvol ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                </FieldGroup>
+
+                <FieldGroup label="원료">
+                  <SubField label="쌀 (kg)">
+                    <input type="number" name="rice" step="0.001" defaultValue={editEntry?.rice ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                  <SubField label="물 (L)">
+                    <input type="number" name="water" step="0.001" defaultValue={editEntry?.water ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                  <SubField label="효모 (g)">
+                    <input type="number" name="yeast" step="0.001" defaultValue={editEntry?.yeast ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                  <SubField label="곡자 (kg)">
+                    <input type="number" name="koji" step="0.001" defaultValue={editEntry?.koji ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                </FieldGroup>
+
+                <FieldGroup label="걸름">
+                  <SubField label="걸름 일자">
+                    <input type="date" name="fdate" defaultValue={editEntry?.fdate ?? ''} className={inputCls} />
+                  </SubField>
+                  <SubField label="걸른량 (L)">
+                    <input type="number" name="filt" step="0.001" defaultValue={editEntry?.filt ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                </FieldGroup>
+
+                <FieldGroup label="품질">
+                  <SubField label="주정분 (%)">
+                    <div className="relative">
+                      <input type="number" name="alc" step="0.01" defaultValue={editEntry?.alc ?? ''} placeholder="0" className={numInputCls + ' pr-6'} />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-ink-muted">%</span>
                     </div>
-                    <div>
-                      <label className="block text-xs text-ink-secondary mb-1">걸른량 (L)</label>
-                      <input type="number" name="filt" step="0.001" defaultValue={editEntry?.filt ?? ''} placeholder="0" className={numInputCls} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-ink-secondary mb-1">주정분 (%)</label>
-                      <input type="number" name="alc" step="0.01" defaultValue={editEntry?.alc ?? ''} placeholder="0" className={numInputCls} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-ink-secondary mb-1">산도</label>
-                      <input type="number" name="acid" step="0.01" defaultValue={editEntry?.acid ?? ''} placeholder="0" className={numInputCls} />
-                    </div>
-                  </div>
-                </div>
+                  </SubField>
+                  <SubField label="산도">
+                    <input type="number" name="acid" step="0.01" defaultValue={editEntry?.acid ?? ''} placeholder="0" className={numInputCls} />
+                  </SubField>
+                </FieldGroup>
 
                 <div>
                   <label className="block text-xs text-ink-secondary mb-1">비고</label>
@@ -278,38 +290,45 @@ export default function MashPage() {
                 <thead>
                   <tr className="bg-brand-wood text-ink-inverse">
                     <th rowSpan={2} onClick={cycleSortDir} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20 whitespace-nowrap cursor-pointer select-none group"><span className="inline-flex items-center gap-1">담금일<SortIcon direction={sortDir} /></span></th>
-                    <th rowSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20 whitespace-nowrap">담금번호</th>
-                    <th rowSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20 whitespace-nowrap">원료종류</th>
-                    <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-r border-brand-koji/20 whitespace-nowrap">쌀(kg)</th>
-                    <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-r border-brand-koji/20 whitespace-nowrap">물(L)</th>
-                    <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-r border-brand-koji/20 whitespace-nowrap">효모(g)</th>
-                    <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-r border-brand-koji/20 whitespace-nowrap">곡자(kg)</th>
-                    <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-r border-brand-koji/20 whitespace-nowrap">담금량(L)</th>
-                    <th colSpan={4} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">걸름</th>
+                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">담금</th>
+                    <th colSpan={4} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">원료</th>
+                    <th colSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">걸름</th>
+                    <th colSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">품질</th>
                     <th rowSpan={2} className="px-3 py-2 text-left font-semibold border-r border-brand-koji/20">비고</th>
                     <th rowSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20 whitespace-nowrap">승인</th>
                     {canWrite && <th rowSpan={2} className="px-3 py-2 text-center font-semibold whitespace-nowrap">관리</th>}
                   </tr>
                   <tr className="bg-brand-wood/80 text-ink-inverse/80">
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">걸름일</th>
-                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">걸른량(L)</th>
-                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">주정분(%)</th>
-                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">산도</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20 whitespace-nowrap">번호</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20 whitespace-nowrap">원료종류</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">담금량(L)</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">쌀(kg)</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">물(L)</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">효모(g)</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">곡자(kg)</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20 whitespace-nowrap">걸름일</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">걸른량(L)</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">주정분(%)</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20 whitespace-nowrap">산도</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-secondary">
                   {canWrite && (
                     <tr className="border-b-2 border-brand-koji/20 bg-brand-koji/5">
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="date" value={inlineForm.ledger_date} onChange={(e) => setInlineForm(p => ({ ...p, ledger_date: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} className={iCls + ' tabular-nums'} /></td>
+                      {/* 담금 group */}
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="text" value={inlineForm.bno} onChange={(e) => setInlineForm(p => ({ ...p, bno: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="번호" className={iCls} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="text" value={inlineForm.rtype} onChange={(e) => setInlineForm(p => ({ ...p, rtype: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="원료종류" className={iCls} /></td>
+                      <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.fvol || ''} onChange={(e) => setInlineForm(p => ({ ...p, fvol: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
+                      {/* 원료 group */}
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.rice || ''} onChange={(e) => setInlineForm(p => ({ ...p, rice: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.water || ''} onChange={(e) => setInlineForm(p => ({ ...p, water: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.yeast || ''} onChange={(e) => setInlineForm(p => ({ ...p, yeast: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.koji || ''} onChange={(e) => setInlineForm(p => ({ ...p, koji: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
-                      <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.fvol || ''} onChange={(e) => setInlineForm(p => ({ ...p, fvol: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
+                      {/* 걸름 group */}
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="date" value={inlineForm.fdate} onChange={(e) => setInlineForm(p => ({ ...p, fdate: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} className={iCls + ' tabular-nums'} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.filt || ''} onChange={(e) => setInlineForm(p => ({ ...p, filt: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.001" className={nCls} /></td>
+                      {/* 품질 group */}
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.alc || ''} onChange={(e) => setInlineForm(p => ({ ...p, alc: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.01" className={nCls} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="number" value={inlineForm.acid || ''} onChange={(e) => setInlineForm(p => ({ ...p, acid: parseFloat(e.target.value) || 0 }))} onKeyDown={(e) => handleInlineKeyDown(e)} placeholder="0" step="0.01" className={nCls} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="text" value={inlineForm.notes} onChange={(e) => setInlineForm(p => ({ ...p, notes: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e, true)} placeholder="비고" className={iCls + ' text-[11px]'} /></td>
@@ -325,15 +344,19 @@ export default function MashPage() {
                   {sortedEntries.map((e) => (
                     <tr key={e.id} className="hover:bg-surface-secondary/30">
                       <td className="px-3 py-2 border-r border-surface-secondary text-center tabular-nums whitespace-nowrap">{e.ledger_date}</td>
+                      {/* 담금 group */}
                       <td className="px-3 py-2 border-r border-surface-secondary text-center">{e.bno ?? ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary">{e.rtype ?? ''}</td>
+                      <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.fvol != null ? formatNumber(e.fvol) : ''}</td>
+                      {/* 원료 group */}
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.rice != null ? formatNumber(e.rice) : ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.water != null ? formatNumber(e.water) : ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.yeast != null ? formatNumber(e.yeast) : ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.koji != null ? formatNumber(e.koji) : ''}</td>
-                      <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.fvol != null ? formatNumber(e.fvol) : ''}</td>
+                      {/* 걸름 group */}
                       <td className="px-3 py-2 border-r border-surface-secondary text-center whitespace-nowrap">{e.fdate ?? ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.filt != null ? formatNumber(e.filt) : ''}</td>
+                      {/* 품질 group */}
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.alc != null ? formatNumber(e.alc) : ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.acid != null ? formatNumber(e.acid) : ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-ink-muted">{e.notes ?? ''}</td>

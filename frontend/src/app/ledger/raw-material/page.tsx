@@ -272,36 +272,36 @@ function RawMaterialPageInner() {
 
                 {isRice ? (
                   <>
-                    <FieldGroup label="입고 (1번 창고)">
-                      <SubField label="시작 순호">
-                        <input type="text" name="s2a" defaultValue={editEntry?.s2a ?? ''} placeholder="순호" className={inputCls} />
+                    <FieldGroup label="2차담금">
+                      <SubField label="순호전">
+                        <input type="text" name="s2a" defaultValue={editEntry?.s2a ?? ''} placeholder="순호전" className={inputCls} />
                       </SubField>
-                      <SubField label="종료 순호">
-                        <input type="text" name="s2b" defaultValue={editEntry?.s2b ?? ''} placeholder="순호" className={inputCls} />
+                      <SubField label="순호후">
+                        <input type="text" name="s2b" defaultValue={editEntry?.s2b ?? ''} placeholder="순호후" className={inputCls} />
                       </SubField>
-                      <SubField label="수량 (kg)">
+                      <SubField label="사용량">
                         <input type="number" name="u2" step="0.001" defaultValue={editEntry?.u2 ?? ''} placeholder="0" className={numInputCls} />
                       </SubField>
                     </FieldGroup>
-                    <FieldGroup label="입고 (2번 창고)">
-                      <SubField label="시작 순호">
-                        <input type="text" name="s3a" defaultValue={editEntry?.s3a ?? ''} placeholder="순호" className={inputCls} />
+                    <FieldGroup label="3차담금">
+                      <SubField label="순호전">
+                        <input type="text" name="s3a" defaultValue={editEntry?.s3a ?? ''} placeholder="순호전" className={inputCls} />
                       </SubField>
-                      <SubField label="종료 순호">
-                        <input type="text" name="s3b" defaultValue={editEntry?.s3b ?? ''} placeholder="순호" className={inputCls} />
+                      <SubField label="순호후">
+                        <input type="text" name="s3b" defaultValue={editEntry?.s3b ?? ''} placeholder="순호후" className={inputCls} />
                       </SubField>
-                      <SubField label="수량 (kg)">
+                      <SubField label="사용량">
                         <input type="number" name="u3" step="0.001" defaultValue={editEntry?.u3 ?? ''} placeholder="0" className={numInputCls} />
                       </SubField>
                     </FieldGroup>
-                    <FieldGroup label="사용">
-                      <SubField label="시작 순호">
-                        <input type="text" name="s4a" defaultValue={editEntry?.s4a ?? ''} placeholder="순호" className={inputCls} />
+                    <FieldGroup label="4차담금">
+                      <SubField label="순호전">
+                        <input type="text" name="s4a" defaultValue={editEntry?.s4a ?? ''} placeholder="순호전" className={inputCls} />
                       </SubField>
-                      <SubField label="종료 순호">
-                        <input type="text" name="s4b" defaultValue={editEntry?.s4b ?? ''} placeholder="순호" className={inputCls} />
+                      <SubField label="순호후">
+                        <input type="text" name="s4b" defaultValue={editEntry?.s4b ?? ''} placeholder="순호후" className={inputCls} />
                       </SubField>
-                      <SubField label="수량 (kg)">
+                      <SubField label="사용량">
                         <input type="number" name="u4" step="0.001" defaultValue={editEntry?.u4 ?? ''} placeholder="0" className={numInputCls} />
                       </SubField>
                     </FieldGroup>
@@ -378,23 +378,23 @@ function RawMaterialPageInner() {
                     <th rowSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20 whitespace-nowrap">담당자</th>
                     <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-r border-brand-koji/20 whitespace-nowrap">단가(원)</th>
                     <th rowSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">출처</th>
-                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">입고 (1번창고)</th>
-                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">입고 (2번창고)</th>
-                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">사용</th>
+                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">2차담금</th>
+                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">3차담금</th>
+                    <th colSpan={3} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">4차담금</th>
                     <th rowSpan={2} className="px-3 py-2 text-left font-semibold border-r border-brand-koji/20">비고</th>
                     <th rowSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20 whitespace-nowrap">승인</th>
                     {canWrite && <th rowSpan={2} className="px-3 py-2 text-center font-semibold whitespace-nowrap">관리</th>}
                   </tr>
                   <tr className="bg-brand-wood/80 text-ink-inverse/80">
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">시작</th>
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">종료</th>
-                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">수량(kg)</th>
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">시작</th>
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">종료</th>
-                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">수량(kg)</th>
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">시작</th>
-                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">종료</th>
-                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">수량(kg)</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">순호전</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">순호후</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">사용량</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">순호전</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">순호후</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">사용량</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">순호전</th>
+                    <th className="px-2 py-1 text-center border-r border-brand-koji/20">순호후</th>
+                    <th className="px-2 py-1 text-right border-r border-brand-koji/20">사용량</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-secondary">
@@ -404,14 +404,14 @@ function RawMaterialPageInner() {
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="담당자" className={iCls} value={inlineForm.person} onChange={(e) => setInlineForm((f) => ({ ...f, person: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="number" step="1" placeholder="0" className={nCls} value={inlineForm.price} onChange={(e) => setInlineForm((f) => ({ ...f, price: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="출처" className={iCls} value={inlineForm.src} onChange={(e) => setInlineForm((f) => ({ ...f, src: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
-                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="시작" className={iCls} value={inlineForm.s2a} onChange={(e) => setInlineForm((f) => ({ ...f, s2a: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
-                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="종료" className={iCls} value={inlineForm.s2b} onChange={(e) => setInlineForm((f) => ({ ...f, s2b: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
+                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="순호전" className={iCls} value={inlineForm.s2a} onChange={(e) => setInlineForm((f) => ({ ...f, s2a: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
+                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="순호후" className={iCls} value={inlineForm.s2b} onChange={(e) => setInlineForm((f) => ({ ...f, s2b: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="number" step="0.001" placeholder="0" className={nCls} value={inlineForm.u2} onChange={(e) => setInlineForm((f) => ({ ...f, u2: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
-                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="시작" className={iCls} value={inlineForm.s3a} onChange={(e) => setInlineForm((f) => ({ ...f, s3a: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
-                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="종료" className={iCls} value={inlineForm.s3b} onChange={(e) => setInlineForm((f) => ({ ...f, s3b: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
+                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="순호전" className={iCls} value={inlineForm.s3a} onChange={(e) => setInlineForm((f) => ({ ...f, s3a: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
+                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="순호후" className={iCls} value={inlineForm.s3b} onChange={(e) => setInlineForm((f) => ({ ...f, s3b: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="number" step="0.001" placeholder="0" className={nCls} value={inlineForm.u3} onChange={(e) => setInlineForm((f) => ({ ...f, u3: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
-                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="시작" className={iCls} value={inlineForm.s4a} onChange={(e) => setInlineForm((f) => ({ ...f, s4a: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
-                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="종료" className={iCls} value={inlineForm.s4b} onChange={(e) => setInlineForm((f) => ({ ...f, s4b: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
+                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="순호전" className={iCls} value={inlineForm.s4a} onChange={(e) => setInlineForm((f) => ({ ...f, s4a: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
+                      <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="순호후" className={iCls} value={inlineForm.s4b} onChange={(e) => setInlineForm((f) => ({ ...f, s4b: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="number" step="0.001" placeholder="0" className={nCls} value={inlineForm.u4} onChange={(e) => setInlineForm((f) => ({ ...f, u4: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"><input type="text" placeholder="비고" className={iCls} value={inlineForm.notes} onChange={(e) => setInlineForm((f) => ({ ...f, notes: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e, true)} /></td>
                       <td className="px-1 py-1 border-r border-surface-secondary"></td>

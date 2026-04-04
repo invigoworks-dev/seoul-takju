@@ -6,6 +6,7 @@ const router = express.Router();
 const pool = require('../db');
 const { resolveCarryOver, propagateCarryOver } = require('../carryOver');
 const { logInsert, logUpdate, logDelete } = require('../auditLog');
+const { isMonthClosed } = require('../middleware/monthlyClose');
 const authMiddleware = require('../middleware/auth');
 
 router.use(authMiddleware);
@@ -43,6 +44,9 @@ router.post('/', async (req, res, next) => {
       person, ms_cnt, sd_cnt, ms_raw, sd_raw, ms_b, ms_a, sd_b, sd_a
     } = req.body;
     if (!ledger_date) return res.status(400).json({ error: 'ledger_date is required' });
+    if (await isMonthClosed(ledger_date.substring(0, 7))) {
+      return res.status(403).json({ error: `${ledger_date.substring(0, 7)} 월은 마감되었습니다.` });
+    }
     const carry_over = await resolveCarryOver(req.body.carry_over, 'koji_ledger', 'batch_code', batch_code, ledger_date);
     const client = await pool.connect();
     try {
@@ -79,6 +83,10 @@ router.put('/:id', async (req, res, next) => {
       const existing = await client.query('SELECT * FROM koji_ledger WHERE id=$1 FOR UPDATE', [req.params.id]);
       if (!existing.rows.length) { client.release(); return res.status(404).json({ error: 'Not found' }); }
       const cur = existing.rows[0];
+      if (await isMonthClosed(cur.ledger_date.substring(0, 7))) {
+        await client.query('ROLLBACK'); client.release();
+        return res.status(403).json({ error: `${cur.ledger_date.substring(0, 7)} 월은 마감되었습니다.` });
+      }
       const batch_code = req.body.batch_code ?? cur.batch_code;
       const carry_over = req.body.carry_over ?? cur.carry_over;
       const produced   = req.body.produced   ?? cur.produced;
@@ -124,6 +132,9 @@ router.delete('/:id', async (req, res, next) => {
     const existing = await pool.query('SELECT * FROM koji_ledger WHERE id=$1', [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
     const old = existing.rows[0];
+    if (await isMonthClosed(old.ledger_date.substring(0, 7))) {
+      return res.status(403).json({ error: `${old.ledger_date.substring(0, 7)} 월은 마감되었습니다.` });
+    }
     await pool.query('DELETE FROM koji_ledger WHERE id=$1', [req.params.id]);
     await logDelete(pool, 'koji_ledger', old.id, old, req.user?.id);
     res.status(204).end();
