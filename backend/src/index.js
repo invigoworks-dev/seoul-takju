@@ -23,7 +23,10 @@ const errorHandler      = require('./middleware/errorHandler');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+  credentials: true,
+}));
 app.use(express.json());
 
 // 인증

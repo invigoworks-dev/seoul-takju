@@ -16,7 +16,7 @@ import type {
 import { authHeaders } from './auth';
 import type { User, UserRole } from './auth';
 
-const API_BASE = '/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Map MaterialCategory to backend URL path segment
 const categoryToPath: Record<MaterialCategory, string> = {
