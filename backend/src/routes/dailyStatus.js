@@ -403,7 +403,7 @@ const ITEM_CONFIG = {
     dateCol: 'r.ledger_date',
     receivedExpr: 'COALESCE(SUM(r.received), 0)',
     usedExpr: 'COALESCE(SUM(COALESCE(r.u2,0) + COALESCE(r.u3,0) + COALESCE(r.u4,0)), 0)',
-    historyExtraCols: 'COALESCE(r.received,0) AS received, COALESCE(r.u2,0) AS u2, COALESCE(r.u3,0) AS u3, COALESCE(r.u4,0) AS u4',
+    historyExtraCols: 'COALESCE(r.received,0) AS received, COALESCE(r.u2,0) AS u2, COALESCE(r.u3,0) AS u3, COALESCE(r.u4,0) AS u4, r.person, COALESCE(r.price,0) AS price, r.src, r.notes, r.s2a, r.s2b, r.s3a, r.s3b, r.s4a, r.s4b',
     historyUsedExpr: 'COALESCE(r.u2,0) + COALESCE(r.u3,0) + COALESCE(r.u4,0)',
   },
   '백미': {
@@ -414,7 +414,7 @@ const ITEM_CONFIG = {
     dateCol: 'r.ledger_date',
     receivedExpr: 'COALESCE(SUM(r.received), 0)',
     usedExpr: 'COALESCE(SUM(COALESCE(r.u2,0) + COALESCE(r.u3,0) + COALESCE(r.u4,0)), 0)',
-    historyExtraCols: 'COALESCE(r.received,0) AS received, COALESCE(r.u2,0) AS u2, COALESCE(r.u3,0) AS u3, COALESCE(r.u4,0) AS u4',
+    historyExtraCols: 'COALESCE(r.received,0) AS received, COALESCE(r.u2,0) AS u2, COALESCE(r.u3,0) AS u3, COALESCE(r.u4,0) AS u4, r.person, COALESCE(r.price,0) AS price, r.src, r.notes, r.s2a, r.s2b, r.s3a, r.s3b, r.s4a, r.s4b',
     historyUsedExpr: 'COALESCE(r.u2,0) + COALESCE(r.u3,0) + COALESCE(r.u4,0)',
   },
   '효모': {
@@ -425,7 +425,7 @@ const ITEM_CONFIG = {
     dateCol: 'f.ledger_date',
     receivedExpr: 'COALESCE(SUM(f.received), 0)',
     usedExpr: 'COALESCE(SUM(f.used), 0)',
-    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used',
+    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used, f.person, f.notes',
     historyUsedExpr: 'COALESCE(f.used,0)',
   },
   '곡자': {
@@ -436,7 +436,7 @@ const ITEM_CONFIG = {
     dateCol: 'f.ledger_date',
     receivedExpr: 'COALESCE(SUM(f.received), 0)',
     usedExpr: 'COALESCE(SUM(f.used), 0)',
-    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used',
+    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used, f.person, f.notes',
     historyUsedExpr: 'COALESCE(f.used,0)',
   },
   '아스파탐': {
@@ -447,7 +447,7 @@ const ITEM_CONFIG = {
     dateCol: 'f.ledger_date',
     receivedExpr: 'COALESCE(SUM(f.received), 0)',
     usedExpr: 'COALESCE(SUM(f.used), 0)',
-    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used',
+    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used, f.person, f.notes',
     historyUsedExpr: 'COALESCE(f.used,0)',
   },
   '구연산': {
@@ -458,7 +458,7 @@ const ITEM_CONFIG = {
     dateCol: 'f.ledger_date',
     receivedExpr: 'COALESCE(SUM(f.received), 0)',
     usedExpr: 'COALESCE(SUM(f.used), 0)',
-    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used',
+    historyExtraCols: 'COALESCE(f.received,0) AS received, COALESCE(f.used,0) AS used, f.person, f.notes',
     historyUsedExpr: 'COALESCE(f.used,0)',
   },
   '주류': {
@@ -469,7 +469,7 @@ const ITEM_CONFIG = {
     dateCol: 'l.ledger_date',
     receivedExpr: 'COALESCE(SUM(l.received), 0)',
     usedExpr: 'COALESCE(SUM(l.shipped), 0)',
-    historyExtraCols: 'COALESCE(SUM(l.received),0) AS received, COALESCE(SUM(l.shipped),0) AS shipped',
+    historyExtraCols: 'COALESCE(SUM(l.received),0) AS received, COALESCE(SUM(l.shipped),0) AS shipped, COALESCE(SUM(l.price),0) AS price, string_agg(DISTINCT l.person, \', \') AS person, string_agg(DISTINCT l.driver, \', \') AS driver, string_agg(DISTINCT l.dest, \', \') AS dest, string_agg(DISTINCT l.notes, \'; \') AS notes',
     historyUsedExpr: 'COALESCE(SUM(l.shipped),0)',
   },
   '용기': {
@@ -686,9 +686,11 @@ router.get('/inventory/history/:item', async (req, res, next) => {
 
       const base = { ledger_date: row.ledger_date, balance: running };
       if (itemKey === '평화미' || itemKey === '백미') {
-        return { ...base, received: rec, u2: parseFloat(row.u2) || 0, u3: parseFloat(row.u3) || 0, u4: parseFloat(row.u4) || 0 };
+        return { ...base, received: rec, u2: parseFloat(row.u2) || 0, u3: parseFloat(row.u3) || 0, u4: parseFloat(row.u4) || 0, person: row.person || null, price: parseFloat(row.price) || 0, src: row.src || null, notes: row.notes || null, s2a: row.s2a || null, s2b: row.s2b || null, s3a: row.s3a || null, s3b: row.s3b || null, s4a: row.s4a || null, s4b: row.s4b || null };
       } else if (itemKey === '주류') {
-        return { ...base, received: rec, shipped: usedVal };
+        return { ...base, received: rec, shipped: usedVal, person: row.person || null, price: parseFloat(row.price) || 0, driver: row.driver || null, dest: row.dest || null, notes: row.notes || null };
+      } else if (itemKey === '효모' || itemKey === '곡자' || itemKey === '아스파탐' || itemKey === '구연산') {
+        return { ...base, received: rec, used: usedVal, person: row.person || null, notes: row.notes || null };
       } else {
         return { ...base, received: rec, used: usedVal };
       }

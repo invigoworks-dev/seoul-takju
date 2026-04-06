@@ -117,11 +117,19 @@ router.post('/:type/import', authorize('admin', 'manager', 'operator'), upload.s
       return res.status(400).json({ error: '데이터가 없거나 헤더만 있는 파일입니다.' });
     }
 
+    // Build reverse mapping: Korean name → column name
+    const koreanToColumn = {};
+    for (const [col, korean] of Object.entries(COLUMN_KOREAN_NAMES)) {
+      koreanToColumn[korean.toLowerCase()] = col;
+    }
+
     const headerRow = worksheet.getRow(1);
     const headers = [];
     headerRow.eachCell((cell) => {
       // Strip " *" suffix from required field markers in template headers
-      headers.push(String(cell.value).trim().replace(/\s*\*$/, '').toLowerCase());
+      const raw = String(cell.value).trim().replace(/\s*\*$/, '').toLowerCase();
+      // Map Korean header back to column name, or keep as-is for English headers
+      headers.push(koreanToColumn[raw] || raw);
     });
 
     let inserted = 0;
@@ -225,44 +233,44 @@ const TEMPLATE_REQUIRED_FIELDS = {
 
 const TEMPLATE_GUIDE = {
   raw_material: {
-    material_id: '⬇ 필수 입력', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
-    received: '⬇ 필수 입력', used: '숫자만 입력', supplier: '선택 사항', notes: '선택 사항',
+    material_id: '필수 - 자재 ID (자재 목록 참조)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
+    received: '필수 - 숫자만 입력', used: '숫자만 입력', supplier: '선택 사항', notes: '선택 사항',
   },
   fermentation_agent: {
-    material_id: '⬇ 필수 입력', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    material_id: '필수 - 자재 ID (자재 목록 참조)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
     received: '숫자만 입력', used: '숫자만 입력', notes: '선택 사항',
   },
   koji: {
-    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
-    produced: '숫자만 입력', used: '숫자만 입력', rice_used: '숫자만 입력', notes: '선택 사항',
+    batch_code: '선택 사항 (예: KJ-20260401)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
+    produced: '숫자만 입력', used: '숫자만 입력', rice_used: '숫자만 입력 (kg)', notes: '선택 사항',
   },
   starter: {
-    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
-    produced: '숫자만 입력', used: '숫자만 입력', koji_used: '숫자만 입력',
-    rice_used: '숫자만 입력', water_used: '숫자만 입력', notes: '선택 사항',
+    batch_code: '선택 사항 (예: ST-20260401)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
+    produced: '숫자만 입력', used: '숫자만 입력', koji_used: '숫자만 입력 (kg)',
+    rice_used: '숫자만 입력 (kg)', water_used: '숫자만 입력 (L)', notes: '선택 사항',
   },
   mash: {
-    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
-    produced: '숫자만 입력', used: '숫자만 입력', starter_used: '숫자만 입력',
-    koji_used: '숫자만 입력', rice_used: '숫자만 입력', water_used: '숫자만 입력', notes: '선택 사항',
+    batch_code: '선택 사항 (예: MS-20260401)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
+    produced: '숫자만 입력', used: '숫자만 입력', starter_used: '숫자만 입력 (L)',
+    koji_used: '숫자만 입력 (kg)', rice_used: '숫자만 입력 (kg)', water_used: '숫자만 입력 (L)', notes: '선택 사항',
   },
   liquor: {
-    product_code: '⬇ 필수 입력', product_name: '⬇ 필수 입력', ledger_date: 'YYYY-MM-DD',
-    carry_over: '숫자만 입력', received: '숫자만 입력', shipped: '숫자만 입력',
-    unit: '선택 사항', notes: '선택 사항',
+    product_code: '필수 - 제품코드 (예: MK-001)', product_name: '필수 - 제품명', ledger_date: '필수 - YYYY-MM-DD 형식',
+    carry_over: '숫자만 입력 (자동계산 가능)', received: '숫자만 입력', shipped: '숫자만 입력',
+    unit: '선택 사항 (예: 병, L)', notes: '선택 사항',
   },
   lees: {
-    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    batch_code: '선택 사항 (예: LE-20260401)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
     produced: '숫자만 입력', used: '숫자만 입력', notes: '선택 사항',
   },
   first_mash: {
-    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
-    starter_used: '숫자만 입력', koji_used: '숫자만 입력', rice_used: '숫자만 입력',
-    water_used: '숫자만 입력', produced: '숫자만 입력', used: '숫자만 입력',
-    filter_date: 'YYYY-MM-DD', filtered_amount: '숫자만 입력', notes: '선택 사항',
+    batch_code: '선택 사항 (예: FM-20260401)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
+    starter_used: '숫자만 입력 (L)', koji_used: '숫자만 입력 (kg)', rice_used: '숫자만 입력 (kg)',
+    water_used: '숫자만 입력 (L)', produced: '숫자만 입력', used: '숫자만 입력',
+    filter_date: 'YYYY-MM-DD 형식 (거름 날짜)', filtered_amount: '숫자만 입력', notes: '선택 사항',
   },
   container: {
-    container_type: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    container_type: '선택 사항 - 용기 종류 (예: 750ml 유리병)', ledger_date: '필수 - YYYY-MM-DD 형식', carry_over: '숫자만 입력 (자동계산 가능)',
     received: '숫자만 입력', used: '숫자만 입력', notes: '선택 사항',
   },
 };
@@ -307,6 +315,30 @@ const TEMPLATE_EXAMPLE = {
   },
 };
 
+// 컬럼명 → 한글 헤더 매핑 (업로드 템플릿용)
+const COLUMN_KOREAN_NAMES = {
+  material_id: '자재ID',
+  ledger_date: '날짜',
+  carry_over: '이월',
+  received: '입고',
+  used: '사용',
+  supplier: '공급업체',
+  notes: '비고',
+  batch_code: '배치코드',
+  produced: '제조',
+  rice_used: '쌀사용(kg)',
+  koji_used: '입국사용(kg)',
+  water_used: '물사용(L)',
+  starter_used: '밑술사용(L)',
+  product_code: '제품코드',
+  product_name: '제품명',
+  unit: '단위',
+  shipped: '출고',
+  filter_date: '거름일',
+  filtered_amount: '거름량',
+  container_type: '용기종류',
+};
+
 // GET /api/ledgers/:type/template — 가이드 행 포함 업로드용 xlsx 반환
 router.get('/:type/template', async (req, res, next) => {
   try {
@@ -323,10 +355,11 @@ router.get('/:type/template', async (req, res, next) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(type);
 
-    // --- Row 1: Headers with asterisk for required fields ---
-    const headerValues = config.columns.map(col =>
-      requiredFields.includes(col) ? `${col} *` : col
-    );
+    // --- Row 1: Headers with asterisk for required fields (Korean names) ---
+    const headerValues = config.columns.map(col => {
+      const koreanName = COLUMN_KOREAN_NAMES[col] || col;
+      return requiredFields.includes(col) ? `${koreanName} *` : koreanName;
+    });
     worksheet.addRow(headerValues);
 
     // --- Row 2: Guide descriptions ---

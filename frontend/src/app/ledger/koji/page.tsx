@@ -59,6 +59,26 @@ export default function KojiPage() {
   const [filterDate, setFilterDate] = useState('');
   const [sort, setSort] = useState<SortState>({ key: 'ledger_date', dir: 'none' });
   const [approvalMap, setApprovalMap] = useState<Record<number, ApprovalStatus>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === entries.length && entries.length > 0) return new Set();
+      return new Set(entries.map((e) => e.id));
+    });
+  }, [entries]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const loadApprovals = useCallback(async (ids: number[]) => {
     if (!ids.length) return;
@@ -152,6 +172,28 @@ export default function KojiPage() {
       setApprovalMap((prev) => ({ ...prev, [entry.id]: 'pending' }));
     } catch (err) {
       showToast(err instanceof Error ? err.message : '승인 요청에 실패했습니다', 'error');
+    }
+  };
+
+  const handleBulkDelete = async (ids: number[]) => {
+    try {
+      await Promise.all(ids.map((id) => kojiApi.delete(id)));
+      await loadData();
+      showToast(`${ids.length}건 삭제되었습니다`, 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '일괄 삭제에 실패했습니다', 'error');
+    }
+  };
+
+  const handleBulkApproval = async (ids: number[]) => {
+    try {
+      await Promise.all(ids.map((id) => approvalsApi.request('koji', id)));
+      const newMap = { ...approvalMap };
+      for (const id of ids) newMap[id] = 'pending';
+      setApprovalMap(newMap);
+      showToast(`${ids.length}건 승인 요청됨`, 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '일괄 승인 요청에 실패했습니다', 'error');
     }
   };
 
@@ -312,6 +354,38 @@ export default function KojiPage() {
           </div>
         )}
 
+        {/* Bulk delete confirmation modal */}
+        {bulkDeleteConfirm && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 bg-brand-wood/50 flex items-center justify-center z-50 p-4"
+          >
+            <div className="bg-surface-card rounded-lg shadow-2xl w-full max-w-sm p-5 text-center border border-surface-secondary">
+              <p className="text-ink-primary mb-1 font-bold text-sm">{selectedIds.size}건을 삭제하시겠습니까?</p>
+              <p className="text-xs text-ink-muted mb-4">선택된 항목이 모두 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setBulkDeleteConfirm(false)}
+                  className="px-4 py-1.5 text-sm text-ink-secondary border border-surface-secondary rounded hover:bg-surface-secondary/50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    setBulkDeleteConfirm(false);
+                    handleBulkDelete(Array.from(selectedIds));
+                    clearSelection();
+                  }}
+                  className="px-4 py-1.5 text-sm font-semibold text-ink-inverse bg-brand-clay rounded hover:bg-brand-clay-light transition-colors"
+                >
+                  삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Table */}
         <div className="bg-surface-card rounded border border-surface-secondary overflow-hidden">
           {loading ? (
@@ -319,10 +393,48 @@ export default function KojiPage() {
           ) : entries.length === 0 && !canWrite ? (
             <div className="text-center py-10 text-ink-muted text-sm">데이터가 없습니다</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative">
+              {/* Bulk action bar */}
+              {selectedIds.size > 0 && (
+                <div className="sticky top-0 z-10 bg-brand-koji/10 border border-brand-koji/20 px-4 py-2 flex items-center gap-3 text-xs flex-wrap">
+                  <span className="text-ink-primary font-semibold">&#10003; {selectedIds.size}건 선택</span>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleBulkApproval(Array.from(selectedIds))}
+                      className="px-3 py-1 bg-brand-koji text-ink-inverse rounded hover:bg-brand-koji-light transition-colors font-medium"
+                    >
+                      일괄 승인 요청
+                    </button>
+                  )}
+                  {canWrite && (
+                    <button
+                      onClick={() => setBulkDeleteConfirm(true)}
+                      className="px-3 py-1 bg-brand-clay text-ink-inverse rounded hover:bg-brand-clay-light transition-colors font-medium"
+                    >
+                      일괄 삭제
+                    </button>
+                  )}
+                  <button
+                    onClick={clearSelection}
+                    className="px-3 py-1 text-ink-secondary border border-surface-secondary rounded hover:bg-surface-secondary/50 transition-colors"
+                  >
+                    선택 해제
+                  </button>
+                </div>
+              )}
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-brand-wood text-ink-inverse">
+                    {canWrite && (
+                      <th className="px-2 py-2 w-10 border-r border-brand-koji/20" rowSpan={3}>
+                        <input
+                          type="checkbox"
+                          checked={entries.length > 0 && selectedIds.size === entries.length}
+                          onChange={toggleSelectAll}
+                          className="accent-[var(--color-brand-koji,#8B6914)] cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <SortTh sortKey="ledger_date">검사월일</SortTh>
                     <SortTh sortKey="person">담당자</SortTh>
                     <th colSpan={2} className="px-3 py-2 text-center font-semibold border-r border-brand-koji/20">담금예정개수</th>
@@ -347,6 +459,7 @@ export default function KojiPage() {
                 <tbody className="divide-y divide-surface-secondary">
                   {canWrite && (
                     <tr className="border-b-2 border-brand-koji/20 bg-brand-koji/5">
+                      <td className="px-2 py-1.5 border-r border-surface-secondary" />
                       <td className="px-2 py-1.5 border-r border-surface-secondary"><input type="date" value={inlineForm.ledger_date} onChange={(e) => setInlineForm(p => ({ ...p, ledger_date: e.target.value }))} onKeyDown={(e) => handleInlineKeyDown(e)} className={iCls + ' tabular-nums'} /></td>
                       <td className="px-2 py-1.5 border-r border-surface-secondary">
                         <UserSelect value={inlineForm.person} onChange={(v) => setInlineForm(p => ({ ...p, person: v }))} placeholder="담당자" inputClassName={iCls} />
@@ -368,8 +481,20 @@ export default function KojiPage() {
                       </td>
                     </tr>
                   )}
-                  {sortedEntries.map((e) => (
-                    <tr key={e.id} className="hover:bg-surface-secondary/30">
+                  {sortedEntries.map((e) => {
+                    const isSelected = selectedIds.has(e.id);
+                    return (
+                    <tr key={e.id} className={`hover:bg-brand-koji/5 transition-colors ${isSelected ? 'bg-brand-koji/5' : 'hover:bg-surface-secondary/30'}`}>
+                      {canWrite && (
+                        <td className="px-2 py-2 border-r border-surface-secondary text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelect(e.id)}
+                            className="accent-[var(--color-brand-koji,#8B6914)] cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="px-3 py-2 border-r border-surface-secondary text-center tabular-nums whitespace-nowrap">{e.ledger_date}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-center">{e.person ?? ''}</td>
                       <td className="px-3 py-2 border-r border-surface-secondary text-right tabular-nums">{e.ms_cnt != null ? formatNumber(e.ms_cnt) : ''}</td>
@@ -394,7 +519,8 @@ export default function KojiPage() {
                         </td>
                       )}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

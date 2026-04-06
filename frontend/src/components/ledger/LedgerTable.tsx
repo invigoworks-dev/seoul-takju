@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { LedgerEntry, LedgerEntryInput, Material } from '@/lib/types';
 import { formatDate, formatNumber, toNum } from '@/lib/utils';
 import SortIcon from '@/components/ui/SortIcon';
@@ -21,6 +21,8 @@ interface LedgerTableProps {
   onEdit: (entry: LedgerEntry) => void;
   onDelete: (entry: LedgerEntry) => void;
   onRequestApproval?: (entry: LedgerEntry) => void;
+  onBulkDelete?: (ids: number[]) => void;
+  onBulkApproval?: (ids: number[]) => void;
   canWrite?: boolean;
   materials?: Material[];
   inlineRow?: InlineRowState;
@@ -45,12 +47,34 @@ export default function LedgerTable({
   onEdit,
   onDelete,
   onRequestApproval,
+  onBulkDelete,
+  onBulkApproval,
   canWrite = true,
   materials = [],
   inlineRow,
   approvalMap = {},
 }: LedgerTableProps) {
   const [sort, setSort] = useState<SortState>({ key: 'ledger_date', dir: 'none' });
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === entries.length && entries.length > 0) return new Set();
+      return new Set(entries.map((e) => e.id));
+    });
+  }, [entries]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const showInline = canWrite && !!inlineRow;
   const showApproval = Object.keys(approvalMap).length > 0 || !!onRequestApproval;
@@ -156,10 +180,81 @@ export default function LedgerTable({
   );
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto relative">
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-0 z-10 bg-brand-koji/10 border border-brand-koji/20 px-4 py-2 flex items-center gap-3 text-xs flex-wrap">
+          <span className="text-ink-primary font-semibold">&#10003; {selectedIds.size}건 선택</span>
+          {onBulkApproval && (
+            <button
+              onClick={() => onBulkApproval(Array.from(selectedIds))}
+              className="px-3 py-1 bg-brand-koji text-ink-inverse rounded hover:bg-brand-koji-light transition-colors font-medium"
+            >
+              일괄 승인 요청
+            </button>
+          )}
+          {onBulkDelete && (
+            <button
+              onClick={() => setBulkDeleteConfirm(true)}
+              className="px-3 py-1 bg-brand-clay text-ink-inverse rounded hover:bg-brand-clay-light transition-colors font-medium"
+            >
+              일괄 삭제
+            </button>
+          )}
+          <button
+            onClick={clearSelection}
+            className="px-3 py-1 text-ink-secondary border border-surface-secondary rounded hover:bg-surface-secondary/50 transition-colors"
+          >
+            선택 해제
+          </button>
+        </div>
+      )}
+
+      {/* Bulk delete confirmation modal */}
+      {bulkDeleteConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 bg-brand-wood/50 flex items-center justify-center z-50 p-4"
+        >
+          <div className="bg-surface-card rounded-lg shadow-2xl w-full max-w-sm p-5 text-center border border-surface-secondary">
+            <p className="text-ink-primary mb-1 font-bold text-sm">{selectedIds.size}건을 삭제하시겠습니까?</p>
+            <p className="text-xs text-ink-muted mb-4">선택된 항목이 모두 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setBulkDeleteConfirm(false)}
+                className="px-4 py-1.5 text-sm text-ink-secondary border border-surface-secondary rounded hover:bg-surface-secondary/50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  setBulkDeleteConfirm(false);
+                  onBulkDelete?.(Array.from(selectedIds));
+                  clearSelection();
+                }}
+                className="px-4 py-1.5 text-sm font-semibold text-ink-inverse bg-brand-clay rounded hover:bg-brand-clay-light transition-colors"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <table className="w-full text-[13px]">
         <thead>
           <tr className="border-b-2 border-brand-wood/10 bg-surface-secondary/50">
+            {canWrite && (
+              <th className="px-2 py-2 w-10 border-r border-surface-secondary">
+                <input
+                  type="checkbox"
+                  checked={entries.length > 0 && selectedIds.size === entries.length}
+                  onChange={toggleSelectAll}
+                  className="accent-[var(--color-brand-koji,#8B6914)] cursor-pointer"
+                />
+              </th>
+            )}
             <SortTh sortKey="ledger_date">날짜</SortTh>
             <SortTh sortKey="material_name">품목</SortTh>
             <th className="text-left px-3 py-2 text-ink-muted font-medium text-xs border-r border-surface-secondary">코드</th>
@@ -178,6 +273,8 @@ export default function LedgerTable({
         <tbody>
           {showInline && (
             <tr className="border-b-2 border-brand-koji/20 bg-brand-koji/5">
+              {/* 체크박스 (빈 셀) */}
+              <td className="px-2 py-1.5 border-r border-surface-secondary" />
               {/* 날짜 */}
               <td className="px-2 py-1.5 border-r border-surface-secondary">
                 <input
@@ -287,13 +384,24 @@ export default function LedgerTable({
 
           {sortedEntries.map((entry, idx) => {
             const approvalStatus = approvalMap[entry.id];
+            const isSelected = selectedIds.has(entry.id);
             return (
               <tr
                 key={entry.id}
                 className={`border-b border-surface-secondary/50 hover:bg-brand-koji/5 transition-colors ${
-                  idx % 2 === 0 ? 'bg-surface-card' : 'bg-surface-primary/50'
+                  isSelected ? 'bg-brand-koji/5' : idx % 2 === 0 ? 'bg-surface-card' : 'bg-surface-primary/50'
                 }`}
               >
+                {canWrite && (
+                  <td className="px-2 py-2 border-r border-surface-secondary text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(entry.id)}
+                      className="accent-[var(--color-brand-koji,#8B6914)] cursor-pointer"
+                    />
+                  </td>
+                )}
                 <td className="px-3 py-2 text-ink-secondary whitespace-nowrap tabular-nums border-r border-surface-secondary">
                   {formatDate(entry.ledger_date)}
                 </td>

@@ -160,6 +160,28 @@ export default function LedgerPage({ category }: LedgerPageProps) {
     }
   };
 
+  const handleBulkDelete = async (ids: number[]) => {
+    try {
+      await Promise.all(ids.map((id) => ledgerApi.delete(category, id)));
+      await loadData();
+      showToast(`${ids.length}건 삭제되었습니다`, 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '일괄 삭제에 실패했습니다', 'error');
+    }
+  };
+
+  const handleBulkApproval = async (ids: number[]) => {
+    try {
+      await Promise.all(ids.map((id) => approvalsApi.request(category, id)));
+      const newMap = { ...approvalMap };
+      for (const id of ids) newMap[id] = 'pending';
+      setApprovalMap(newMap);
+      showToast(`${ids.length}건 승인 요청됨`, 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '일괄 승인 요청에 실패했습니다', 'error');
+    }
+  };
+
   const label = CATEGORY_LABELS[category];
 
   const filteredEntries = filterDate
@@ -289,6 +311,8 @@ export default function LedgerPage({ category }: LedgerPageProps) {
               onEdit={handleEdit}
               onDelete={(entry) => setDeleteConfirm(entry)}
               onRequestApproval={canWrite ? handleRequestApproval : undefined}
+              onBulkDelete={canWrite ? handleBulkDelete : undefined}
+              onBulkApproval={canWrite ? handleBulkApproval : undefined}
               canWrite={canWrite}
               materials={materials}
               approvalMap={approvalMap}
