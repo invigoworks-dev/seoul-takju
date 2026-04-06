@@ -119,7 +119,10 @@ router.post('/:type/import', authorize('admin', 'manager', 'operator'), upload.s
 
     const headerRow = worksheet.getRow(1);
     const headers = [];
-    headerRow.eachCell((cell) => { headers.push(String(cell.value).trim().toLowerCase()); });
+    headerRow.eachCell((cell) => {
+      // Strip " *" suffix from required field markers in template headers
+      headers.push(String(cell.value).trim().replace(/\s*\*$/, '').toLowerCase());
+    });
 
     let inserted = 0;
     let skipped = 0;
@@ -132,6 +135,10 @@ router.post('/:type/import', authorize('admin', 'manager', 'operator'), upload.s
       row.eachCell({ includeEmpty: true }, (cell) => { values.push(cell.value); });
 
       if (values.every(v => v === null || v === undefined || v === '')) continue;
+
+      // Skip template guide/example rows (contain guide markers like "필수", "선택", "자동계산", "YYYY-MM-DD")
+      const firstCellStr = String(values[0] || '');
+      if (firstCellStr.includes('필수') || firstCellStr.includes('선택') || firstCellStr.includes('자동계산') || firstCellStr === 'YYYY-MM-DD') continue;
 
       const record = {};
       headers.forEach((h, idx) => { record[h] = values[idx]; });
@@ -203,7 +210,104 @@ router.get('/upload-logs', authorize('admin', 'manager'), async (req, res, next)
   } catch (err) { next(err); }
 });
 
-// GET /api/ledgers/:type/template — 헤더만 있는 빈 xlsx 반환
+// --- Template guide/example configuration per ledger type ---
+const TEMPLATE_REQUIRED_FIELDS = {
+  raw_material: ['material_id', 'ledger_date', 'received'],
+  koji: ['ledger_date'],
+  liquor: ['product_code', 'product_name', 'ledger_date'],
+  mash: ['ledger_date'],
+  starter: ['ledger_date'],
+  lees: ['ledger_date'],
+  first_mash: ['ledger_date'],
+  fermentation_agent: ['material_id', 'ledger_date'],
+  container: ['ledger_date'],
+};
+
+const TEMPLATE_GUIDE = {
+  raw_material: {
+    material_id: '⬇ 필수 입력', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    received: '⬇ 필수 입력', used: '숫자만 입력', supplier: '선택 사항', notes: '선택 사항',
+  },
+  fermentation_agent: {
+    material_id: '⬇ 필수 입력', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    received: '숫자만 입력', used: '숫자만 입력', notes: '선택 사항',
+  },
+  koji: {
+    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    produced: '숫자만 입력', used: '숫자만 입력', rice_used: '숫자만 입력', notes: '선택 사항',
+  },
+  starter: {
+    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    produced: '숫자만 입력', used: '숫자만 입력', koji_used: '숫자만 입력',
+    rice_used: '숫자만 입력', water_used: '숫자만 입력', notes: '선택 사항',
+  },
+  mash: {
+    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    produced: '숫자만 입력', used: '숫자만 입력', starter_used: '숫자만 입력',
+    koji_used: '숫자만 입력', rice_used: '숫자만 입력', water_used: '숫자만 입력', notes: '선택 사항',
+  },
+  liquor: {
+    product_code: '⬇ 필수 입력', product_name: '⬇ 필수 입력', ledger_date: 'YYYY-MM-DD',
+    carry_over: '숫자만 입력', received: '숫자만 입력', shipped: '숫자만 입력',
+    unit: '선택 사항', notes: '선택 사항',
+  },
+  lees: {
+    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    produced: '숫자만 입력', used: '숫자만 입력', notes: '선택 사항',
+  },
+  first_mash: {
+    batch_code: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    starter_used: '숫자만 입력', koji_used: '숫자만 입력', rice_used: '숫자만 입력',
+    water_used: '숫자만 입력', produced: '숫자만 입력', used: '숫자만 입력',
+    filter_date: 'YYYY-MM-DD', filtered_amount: '숫자만 입력', notes: '선택 사항',
+  },
+  container: {
+    container_type: '선택 사항', ledger_date: 'YYYY-MM-DD', carry_over: '숫자만 입력',
+    received: '숫자만 입력', used: '숫자만 입력', notes: '선택 사항',
+  },
+};
+
+const TEMPLATE_EXAMPLE = {
+  raw_material: {
+    material_id: '1', ledger_date: '2026-04-01', carry_over: '100',
+    received: '50', used: '30', supplier: '(주)곡물유통', notes: '4월 입고분',
+  },
+  fermentation_agent: {
+    material_id: '1', ledger_date: '2026-04-01', carry_over: '20',
+    received: '10', used: '5', notes: '4월분',
+  },
+  koji: {
+    batch_code: 'KJ-20260401', ledger_date: '2026-04-01', carry_over: '50',
+    produced: '30', used: '20', rice_used: '25', notes: '4월 1차',
+  },
+  starter: {
+    batch_code: 'ST-20260401', ledger_date: '2026-04-01', carry_over: '100',
+    produced: '50', used: '30', koji_used: '10', rice_used: '15', water_used: '40', notes: '4월 1차',
+  },
+  mash: {
+    batch_code: 'MS-20260401', ledger_date: '2026-04-01', carry_over: '200',
+    produced: '100', used: '80', starter_used: '30', koji_used: '15', rice_used: '25', water_used: '50', notes: '4월 1차',
+  },
+  liquor: {
+    product_code: 'MK-001', product_name: '서울막걸리', ledger_date: '2026-04-01',
+    carry_over: '500', received: '200', shipped: '150', unit: '병', notes: '4월 출고분',
+  },
+  lees: {
+    batch_code: 'LE-20260401', ledger_date: '2026-04-01', carry_over: '30',
+    produced: '15', used: '10', notes: '4월분',
+  },
+  first_mash: {
+    batch_code: 'FM-20260401', ledger_date: '2026-04-01', carry_over: '150',
+    starter_used: '30', koji_used: '10', rice_used: '20', water_used: '40',
+    produced: '80', used: '60', filter_date: '2026-04-05', filtered_amount: '55', notes: '4월 1차',
+  },
+  container: {
+    container_type: '750ml 유리병', ledger_date: '2026-04-01', carry_over: '1000',
+    received: '500', used: '300', notes: '4월분',
+  },
+};
+
+// GET /api/ledgers/:type/template — 가이드 행 포함 업로드용 xlsx 반환
 router.get('/:type/template', async (req, res, next) => {
   try {
     const { type } = req.params;
@@ -212,16 +316,68 @@ router.get('/:type/template', async (req, res, next) => {
       return res.status(400).json({ error: `유효하지 않은 장부 유형: ${Object.keys(LEDGER_CONFIG).join(', ')}` });
     }
 
+    const requiredFields = TEMPLATE_REQUIRED_FIELDS[type] || [];
+    const guideMap = TEMPLATE_GUIDE[type] || {};
+    const exampleMap = TEMPLATE_EXAMPLE[type] || {};
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(type);
 
-    worksheet.addRow(config.exportHeaders);
+    // --- Row 1: Headers with asterisk for required fields ---
+    const headerValues = config.columns.map(col =>
+      requiredFields.includes(col) ? `${col} *` : col
+    );
+    worksheet.addRow(headerValues);
 
-    const headerRowObj = worksheet.getRow(1);
-    headerRowObj.font = { bold: true };
-    headerRowObj.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    // --- Row 2: Guide descriptions ---
+    const guideValues = config.columns.map(col => {
+      if (guideMap[col]) return guideMap[col];
+      if (requiredFields.includes(col)) return '⬇ 필수 입력';
+      return '선택 사항';
+    });
+    worksheet.addRow(guideValues);
 
-    worksheet.columns.forEach((col) => { col.width = 14; });
+    // --- Row 3: Example data ---
+    const exampleValues = config.columns.map(col => exampleMap[col] || '');
+    worksheet.addRow(exampleValues);
+
+    // --- Styling ---
+    const FILL_ORANGE = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4C0' } };
+    const FILL_GRAY = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
+    const FILL_YELLOW = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFDE7' } };
+
+    // Style header row (row 1)
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, size: 11 };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    config.columns.forEach((col, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.fill = requiredFields.includes(col) ? FILL_ORANGE : FILL_GRAY;
+      cell.border = {
+        bottom: { style: 'thin', color: { argb: 'FF999999' } },
+      };
+    });
+
+    // Style guide row (row 2)
+    const guideRow = worksheet.getRow(2);
+    guideRow.font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+    guideRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    config.columns.forEach((_, idx) => {
+      guideRow.getCell(idx + 1).fill = FILL_YELLOW;
+    });
+
+    // Style example row (row 3)
+    const exampleRow = worksheet.getRow(3);
+    exampleRow.font = { size: 10, color: { argb: 'FFAAAAAA' } };
+    exampleRow.alignment = { vertical: 'middle' };
+
+    // Column widths
+    worksheet.columns.forEach((col, idx) => {
+      const headerLen = (headerValues[idx] || '').length;
+      const guideLen = (guideValues[idx] || '').length;
+      const exampleLen = (exampleValues[idx] || '').length;
+      col.width = Math.max(14, headerLen + 4, guideLen + 2, exampleLen + 2);
+    });
 
     const filename = `${type}_template.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

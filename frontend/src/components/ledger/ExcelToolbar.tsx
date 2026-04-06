@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react';
 import { excelApi } from '@/lib/api';
 import { authHeaders } from '@/lib/auth';
-import ExcelColumnGuide from './ExcelColumnGuide';
 
 interface ToastState {
   message: string;
@@ -25,7 +24,6 @@ export default function ExcelToolbar({
 }: ExcelToolbarProps) {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (t: ToastState) => {
@@ -120,22 +118,6 @@ export default function ExcelToolbar({
         </svg>
         양식 다운로드
       </button>
-
-      <button
-        onClick={() => setShowGuide(true)}
-        className={`${btnCls} text-ink-muted`}
-        title="업로드 양식 컬럼 설명 보기"
-      >
-        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 7v4M8 5.5v.5" />
-        </svg>
-        컬럼 안내
-      </button>
-
-      {showGuide && (
-        <ExcelColumnGuide ledgerType={ledgerType} onClose={() => setShowGuide(false)} />
-      )}
 
       {/* Toast */}
       {toast && (

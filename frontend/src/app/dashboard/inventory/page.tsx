@@ -33,6 +33,16 @@ interface HistoryRow {
   used?: number;
   shipped?: number;
   balance: number;
+  person?: string;
+  price?: number;
+  src?: string;
+  notes?: string;
+  type_name?: string;
+  ms?: number;
+  sd?: number;
+  red?: number;
+  driver?: string;
+  dest?: string;
 }
 
 interface HistoryResponse {
@@ -98,33 +108,33 @@ function ItemChip({
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-start px-3.5 py-2.5 rounded-lg border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-koji focus-visible:ring-offset-1 flex-shrink-0 min-w-[90px] text-left',
+        'flex flex-col items-start p-4 rounded-lg border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-koji focus-visible:ring-offset-1 flex-shrink-0 min-w-[130px] text-left',
         selected
           ? 'bg-brand-wood border-brand-wood shadow-md'
           : 'bg-surface-card border-surface-secondary hover:border-brand-koji/40 hover:shadow-sm'
       )}
     >
-      <span className={cn('text-xs font-semibold tracking-wide leading-none mb-1.5', selected ? 'text-brand-koji' : 'text-ink-muted')}>
+      <span className={cn('text-sm font-semibold tracking-wide leading-none mb-2', selected ? 'text-brand-koji' : 'text-ink-muted')}>
         {item.key}
       </span>
-      <span className={cn('text-base font-bold tabular-nums leading-none', selected ? 'text-ink-inverse' : 'text-ink-primary')}>
+      <span className={cn('text-2xl font-bold tabular-nums leading-none', selected ? 'text-ink-inverse' : 'text-ink-primary')}>
         {fmt(item.balance, item.unit)}
       </span>
-      <span className={cn('text-[10px] mt-0.5 leading-none', selected ? 'text-brand-rice/50' : 'text-ink-muted')}>
+      <span className={cn('text-xs mt-1 leading-none', selected ? 'text-brand-rice/50' : 'text-ink-muted')}>
         {item.unit}
       </span>
 
-      {/* Tiny receipt/usage indicators */}
+      {/* Receipt/usage indicators */}
       {(hasReceipt || hasUsage) && (
-        <div className="flex gap-1 mt-1.5">
+        <div className="flex gap-1.5 mt-2 text-xs">
           {hasReceipt && (
-            <span className={cn('text-[9px] leading-none font-medium', selected ? 'text-emerald-400' : 'text-accent-receipt')}>
-              ↑
+            <span className={cn('leading-none font-medium', selected ? 'text-emerald-400' : 'text-accent-receipt')}>
+              입고 {fmt(item.received, item.unit)}
             </span>
           )}
           {hasUsage && (
-            <span className={cn('text-[9px] leading-none font-medium', selected ? 'text-rose-400' : 'text-accent-usage')}>
-              ↓
+            <span className={cn('leading-none font-medium', selected ? 'text-rose-400' : 'text-accent-usage')}>
+              출고 {fmt(item.used, item.unit)}
             </span>
           )}
         </div>
@@ -136,10 +146,10 @@ function ItemChip({
 // Skeleton chip for loading
 function ItemChipSkeleton({ label }: { label: string }) {
   return (
-    <div className="flex flex-col items-start px-3.5 py-2.5 rounded-lg border border-surface-secondary bg-surface-card flex-shrink-0 min-w-[90px] animate-pulse">
-      <span className="text-xs font-semibold text-ink-muted leading-none mb-1.5">{label}</span>
-      <div className="h-5 w-14 rounded bg-surface-secondary" />
-      <div className="h-3 w-7 rounded bg-surface-secondary/70 mt-1" />
+    <div className="flex flex-col items-start p-4 rounded-lg border border-surface-secondary bg-surface-card flex-shrink-0 min-w-[130px] animate-pulse">
+      <span className="text-sm font-semibold text-ink-muted leading-none mb-2">{label}</span>
+      <div className="h-7 w-16 rounded bg-surface-secondary" />
+      <div className="h-4 w-8 rounded bg-surface-secondary/70 mt-1" />
     </div>
   );
 }
@@ -184,8 +194,13 @@ function HistoryTable({
   const type = getItemType(history.item);
   const isRaw = type === 'raw';
   const isLiquor = type === 'liquor';
+  const isFerment = type === 'ferment';
   const usedLabel = isLiquor ? '출하' : '출고';
-  const colSpan = isRaw ? 6 : 4;
+  // raw: 날짜 + 입고 + 2차 + 3차 + 4차 + 잔량 + 담당자 + 가격 + 거래선 + 비고 = 10
+  // ferment: 날짜 + 입고 + 출고 + 잔량 + 담당자 + 종별 + 구입처 + 밑술사용 + 술덧사용 + 결감 + 비고 = 11
+  // liquor: 날짜 + 입고 + 출하 + 잔량 + 담당자 + 가격 + 배달자 + 매도처 = 8
+  // default (container): 날짜 + 입고 + 출고 + 잔량 = 4
+  const colSpan = isRaw ? 10 : isFerment ? 11 : isLiquor ? 8 : 4;
 
   return (
     <div className="flex-1 rounded-lg border border-surface-secondary bg-surface-card overflow-hidden flex flex-col min-h-0">
@@ -214,6 +229,34 @@ function HistoryTable({
                 <th className="text-right px-3 py-2 text-accent-usage font-medium whitespace-nowrap">{usedLabel}</th>
               )}
               <th className="text-right px-3 py-2 text-ink-primary font-bold whitespace-nowrap">잔량</th>
+              {/* Extra columns per type */}
+              {isRaw && (
+                <>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">담당자</th>
+                  <th className="text-right px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">가격</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">거래선</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">비고</th>
+                </>
+              )}
+              {isFerment && (
+                <>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">담당자</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">종별</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">구입처</th>
+                  <th className="text-right px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">밑술사용</th>
+                  <th className="text-right px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">술덧사용</th>
+                  <th className="text-right px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">결감</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">비고</th>
+                </>
+              )}
+              {isLiquor && (
+                <>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">담당자</th>
+                  <th className="text-right px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">가격</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">배달자</th>
+                  <th className="text-left px-3 py-2 text-ink-secondary font-medium whitespace-nowrap">매도처</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -233,6 +276,34 @@ function HistoryTable({
               <td className="px-3 py-1.5 text-right font-bold tabular-nums text-ink-secondary">
                 {fmt(history.carry_balance, history.unit)}
               </td>
+              {/* Empty extra columns for carry row */}
+              {isRaw && (
+                <>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                </>
+              )}
+              {isFerment && (
+                <>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                </>
+              )}
+              {isLiquor && (
+                <>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                  <td className="px-3 py-1.5 text-ink-muted">—</td>
+                </>
+              )}
             </tr>
 
             {history.rows.length === 0 ? (
@@ -276,6 +347,44 @@ function HistoryTable({
                     <td className="px-3 py-1.5 text-right font-bold tabular-nums text-ink-primary whitespace-nowrap">
                       {fmt(row.balance, history.unit)}
                     </td>
+                    {/* Extra data columns per type */}
+                    {isRaw && (
+                      <>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.person || '—'}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-ink-secondary whitespace-nowrap">
+                          {toNum(row.price) > 0 ? fmt(row.price, '') : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.src || '—'}</td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.notes || '—'}</td>
+                      </>
+                    )}
+                    {isFerment && (
+                      <>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.person || '—'}</td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.type_name || '—'}</td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.src || '—'}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-ink-secondary whitespace-nowrap">
+                          {toNum(row.ms) > 0 ? fmt(row.ms, history.unit) : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-ink-secondary whitespace-nowrap">
+                          {toNum(row.sd) > 0 ? fmt(row.sd, history.unit) : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-ink-secondary whitespace-nowrap">
+                          {toNum(row.red) > 0 ? fmt(row.red, history.unit) : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.notes || '—'}</td>
+                      </>
+                    )}
+                    {isLiquor && (
+                      <>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.person || '—'}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-ink-secondary whitespace-nowrap">
+                          {toNum(row.price) > 0 ? fmt(row.price, '') : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.driver || '—'}</td>
+                        <td className="px-3 py-1.5 text-ink-secondary whitespace-nowrap">{row.dest || '—'}</td>
+                      </>
+                    )}
                   </tr>
                 );
               })

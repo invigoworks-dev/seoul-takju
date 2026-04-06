@@ -155,4 +155,72 @@ router.delete('/persons/:id', async (req, res, next) => {
   }
 });
 
+// -------------------------------------------------------
+// 데이터 관리
+// -------------------------------------------------------
+
+const LEDGER_TABLES = [
+  'raw_material_ledger',
+  'fermentation_agent_ledger',
+  'koji_ledger',
+  'starter_ledger',
+  'mash_ledger',
+  'liquor_ledger',
+  'lees_ledger',
+  'first_mash_ledger',
+  'container_ledger',
+];
+
+// GET /api/settings/data/export — 전체 데이터 JSON 내보내기
+router.get('/data/export', async (req, res, next) => {
+  try {
+    const data = {};
+    for (const table of LEDGER_TABLES) {
+      const { rows } = await pool.query(`SELECT * FROM ${table} ORDER BY ledger_date, id`);
+      data[table] = rows;
+    }
+    // 기초재고, 업체정보도 포함
+    const { rows: prevBalance } = await pool.query('SELECT * FROM prev_balance ORDER BY id');
+    data.prev_balance = prevBalance;
+    const { rows: company } = await pool.query('SELECT * FROM company_info ORDER BY id LIMIT 1');
+    data.company_info = company;
+    const { rows: persons } = await pool.query('SELECT * FROM persons ORDER BY id');
+    data.persons = persons;
+
+    res.setHeader('Content-Disposition', `attachment; filename=seoultak-data-${new Date().toISOString().slice(0,10)}.json`);
+    res.json(data);
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/settings/data/reset — 전체 데이터 초기화 (admin only)
+const authorize = require('../middleware/authorize');
+router.delete('/data/reset', authorize(['admin']), async (req, res, next) => {
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // 감사 로그에 기록
+      await client.query(
+        `INSERT INTO change_log (table_name, record_id, action, field_name, new_value, changed_by)
+         VALUES ('_system', 0, 'DELETE', 'full_reset', 'all ledger data cleared', $1)`,
+        [req.user?.id || null]
+      );
+      // 승인, 업로드 로그 삭제
+      await client.query('DELETE FROM approvals');
+      await client.query('DELETE FROM upload_logs');
+      // 모든 장부 데이터 삭제
+      for (const table of LEDGER_TABLES) {
+        await client.query(`DELETE FROM ${table}`);
+      }
+      await client.query('COMMIT');
+      res.json({ message: '모든 장부 데이터가 초기화되었습니다.' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

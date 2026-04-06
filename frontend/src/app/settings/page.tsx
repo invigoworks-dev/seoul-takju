@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useToast } from '@/components/ui/Toast';
 import Header from '@/components/layout/Header';
 import { settingsApi, personsApi, type CompanyInfo, type PrevBalance, type Person } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
+import { useAuth, authHeaders } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 // 전병이월 카테고리 (기초재고 대상)
@@ -343,16 +343,56 @@ export default function SettingsPage() {
             <div className="px-4 py-2.5 bg-brand-clay/10 border-b border-brand-clay/20">
               <h3 className="text-xs font-bold text-brand-clay uppercase tracking-wide">데이터 관리</h3>
             </div>
-            <div className="p-4">
-              <p className="text-sm text-brand-clay mb-3">
-                전체 초기화 시 모든 수불 데이터가 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
-              </p>
-              <button
-                onClick={() => setShowResetModal(true)}
-                className="px-4 py-1.5 text-sm font-semibold text-ink-inverse bg-brand-clay rounded hover:bg-brand-clay-light transition-colors"
-              >
-                전체 초기화
-              </button>
+            <div className="p-4 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/settings/data/export', {
+                        headers: { ...authHeaders() },
+                      });
+                      if (!res.ok) throw new Error('내보내기 실패');
+                      const blob = await res.blob();
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `seoultak-data-${new Date().toISOString().slice(0,10)}.json`;
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                      showToast('데이터를 내보냈습니다', 'success');
+                    } catch (err) {
+                      showToast(err instanceof Error ? err.message : '내보내기 실패', 'error');
+                    }
+                  }}
+                  className="px-4 py-1.5 text-sm font-medium text-ink-secondary border border-surface-secondary rounded hover:bg-surface-secondary/50 transition-colors"
+                >
+                  데이터 내보내기 (JSON)
+                </button>
+                <label className="px-4 py-1.5 text-sm font-medium text-ink-secondary border border-surface-secondary rounded hover:bg-surface-secondary/50 transition-colors cursor-pointer">
+                  데이터 가져오기
+                  <input
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      showToast('데이터 가져오기는 현재 준비 중입니다', 'info');
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="border-t border-brand-clay/20 pt-4">
+                <p className="text-sm text-brand-clay mb-3">
+                  전체 초기화 시 모든 수불 데이터가 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+                </p>
+                <button
+                  onClick={() => setShowResetModal(true)}
+                  className="px-4 py-1.5 text-sm font-semibold text-ink-inverse bg-brand-clay rounded hover:bg-brand-clay-light transition-colors"
+                >
+                  전체 초기화
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -389,8 +429,20 @@ export default function SettingsPage() {
               </button>
               <button
                 disabled={resetConfirmText !== '초기화'}
-                onClick={() => {
-                  alert('현재 API가 지원되지 않습니다. 데이터베이스를 직접 초기화해 주세요.');
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/settings/data/reset', {
+                      method: 'DELETE',
+                      headers: { ...authHeaders() },
+                    });
+                    if (!res.ok) {
+                      const data = await res.json();
+                      throw new Error(data.error || '초기화 실패');
+                    }
+                    showToast('모든 장부 데이터가 초기화되었습니다', 'success');
+                  } catch (err) {
+                    showToast(err instanceof Error ? err.message : '초기화 실패', 'error');
+                  }
                   setShowResetModal(false);
                   setResetConfirmText('');
                 }}
