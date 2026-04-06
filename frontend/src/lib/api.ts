@@ -16,7 +16,9 @@ import type {
 import { authHeaders } from './auth';
 import type { User, UserRole } from './auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_API_URL || '/api')
+  : (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api` : '/api');
 
 // Map MaterialCategory to backend URL path segment
 const categoryToPath: Record<MaterialCategory, string> = {
