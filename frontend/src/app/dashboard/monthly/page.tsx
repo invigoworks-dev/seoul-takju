@@ -53,7 +53,7 @@ const nz = (v: number | undefined | null) => formatNumber(toNum(v));
 
 function SectionHeader({ no, title }: { no: number; title: string }) {
   return (
-    <div className="px-3 py-1.5 bg-[#1a3a5c] text-white text-xs font-bold tracking-wide">
+    <div className="px-3 py-1.5 bg-brand-wood text-ink-inverse text-xs font-bold tracking-wide">
       {no}. {title}
     </div>
   );
@@ -61,7 +61,7 @@ function SectionHeader({ no, title }: { no: number; title: string }) {
 
 function Th({ children, colSpan, rowSpan, className }: { children: React.ReactNode; colSpan?: number; rowSpan?: number; className?: string }) {
   return (
-    <th className={cn('px-2.5 py-1.5 text-center text-[11px] font-semibold text-[#444] border border-[#ccd] bg-[#eef1f7]', className)} colSpan={colSpan} rowSpan={rowSpan}>
+    <th className={cn('px-2.5 py-1.5 text-center text-[11px] font-semibold text-ink-secondary border border-surface-secondary bg-brand-koji/10', className)} colSpan={colSpan} rowSpan={rowSpan}>
       {children}
     </th>
   );
@@ -69,7 +69,7 @@ function Th({ children, colSpan, rowSpan, className }: { children: React.ReactNo
 
 function Td({ children, className, colSpan }: { children: React.ReactNode; className?: string; colSpan?: number }) {
   return (
-    <td className={cn('px-2.5 py-1.5 text-[12px] border border-[#dde] text-right tabular-nums text-[#333]', className)} colSpan={colSpan}>
+    <td className={cn('px-2.5 py-1.5 text-[12px] border border-surface-secondary/70 text-right tabular-nums text-ink-primary', className)} colSpan={colSpan}>
       {children}
     </td>
   );
@@ -145,16 +145,16 @@ export default function MonthlyReportPage() {
         </div>
 
         {/* Report body */}
-        <div className="bg-white rounded-lg border border-[#ccd] p-6 space-y-6 print:border-0 print:p-0 print:rounded-none">
+        <div className="bg-white rounded-lg border border-surface-secondary p-6 space-y-6 print:border-0 print:p-0 print:rounded-none">
           {/* Title */}
           <div className="text-center space-y-1 print:mb-6">
-            <p className="text-sm text-[#666]">서울 탁주</p>
-            <h1 className="text-xl font-bold text-[#1a1a2e]">주류 및 자재 현황월보</h1>
-            <p className="text-xs text-[#888]">{periodStr}</p>
+            <p className="text-sm text-ink-muted">서울 탁주</p>
+            <h1 className="text-xl font-bold text-brand-wood">주류 및 자재 현황월보</h1>
+            <p className="text-xs text-ink-muted">{periodStr}</p>
           </div>
 
           {/* Section 1: 주류사입현황 (원료 이입) */}
-          <div className="rounded overflow-hidden border border-[#ccd]">
+          <div className="rounded overflow-hidden border border-surface-secondary">
             <SectionHeader no={1} title="주류사입현황 (원료 이입)" />
             <table className="w-full border-collapse">
               <thead>
@@ -190,7 +190,7 @@ export default function MonthlyReportPage() {
           </div>
 
           {/* Section 2: 주류제성 및 출고현황 */}
-          <div className="rounded overflow-hidden border border-[#ccd]">
+          <div className="rounded overflow-hidden border border-surface-secondary">
             <SectionHeader no={2} title="주류제성 및 출고현황" />
             <table className="w-full border-collapse">
               <thead>
@@ -215,7 +215,7 @@ export default function MonthlyReportPage() {
           </div>
 
           {/* Section 3: 주류담금현황 */}
-          <div className="rounded overflow-hidden border border-[#ccd]">
+          <div className="rounded overflow-hidden border border-surface-secondary">
             <SectionHeader no={3} title={`주류담금현황 (${month}월)`} />
             <table className="w-full border-collapse">
               <thead>
@@ -234,7 +234,7 @@ export default function MonthlyReportPage() {
               <tbody>
                 {mashRows.length === 0 ? (
                   <tr>
-                    <Td colSpan={9} className="text-center text-[#999] py-4">
+                    <Td colSpan={9} className="text-center text-ink-muted py-4">
                       당월 담금 데이터 없음<br />
                       <span className="text-[11px]">주류제조부에서 담금 데이터를 입력하세요</span>
                     </Td>
@@ -254,7 +254,7 @@ export default function MonthlyReportPage() {
                     </tr>
                   ))
                 )}
-                <tr className="bg-[#f5f5f5] font-bold">
+                <tr className="bg-surface-secondary/40 font-bold">
                   <Td colSpan={4} className="text-left font-bold">합계</Td>
                   <Td>{nz(mashRows.reduce((s, r) => s + toNum(r.rice), 0))}</Td>
                   <Td>{nz(mashRows.reduce((s, r) => s + toNum(r.water), 0))}</Td>
@@ -267,7 +267,7 @@ export default function MonthlyReportPage() {
           </div>
 
           {/* Section 4: 원료 및 원료수불상황 */}
-          <div className="rounded overflow-hidden border border-[#ccd]">
+          <div className="rounded overflow-hidden border border-surface-secondary">
             <SectionHeader no={4} title="원료 및 원료수불상황" />
             <table className="w-full border-collapse">
               <thead>
@@ -296,7 +296,7 @@ export default function MonthlyReportPage() {
                   </tr>
                 ))}
                 {/* 주류 재고 현황 row */}
-                <tr className="bg-[#f5f5f5]">
+                <tr className="bg-surface-secondary/40">
                   <Td colSpan={2} className="text-left font-bold">주류 재고 현황</Td>
                   <Td className="font-bold italic">{nz(liquorCarryOver)} ℓ</Td>
                   <Td>{n(liquorProduced)}</Td>
@@ -309,7 +309,7 @@ export default function MonthlyReportPage() {
           </div>
 
           {/* Section 5: 용기·마개 현황 */}
-          <div className="rounded overflow-hidden border border-[#ccd]">
+          <div className="rounded overflow-hidden border border-surface-secondary">
             <SectionHeader no={5} title="용기·마개 현황" />
             <table className="w-full border-collapse">
               <thead>
